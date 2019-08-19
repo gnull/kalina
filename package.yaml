@@ -1,0 +1,25 @@
+name:                rss-test
+version:             0.1.0.0
+#synopsis:
+#description:
+homepage:            https://github.com/githubuser/rss-test#readme
+license:             BSD3
+author:              Author name here
+maintainer:          example@example.com
+copyright:           2019 Author name here
+category:            Web
+extra-source-files:
+- README.md
+
+dependencies:
+  - base >= 4.7 && < 5
+  - wreq >= 0.5 && < 1
+  - feed >= 1.2 && < 2
+  - lens >= 4.17 && < 5
+  - bytestring >= 0.10 && < 1
+  - text >= 1.2 && < 2
+
+executables:
+  rss-test:
+    source-dirs:      src
+    main:             Main.hs
