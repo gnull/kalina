@@ -5,7 +5,6 @@ module Main where
 
 import System.Environment
 
-import Data.Bool
 import Data.List
 import qualified Data.Text as T
 
@@ -28,7 +27,7 @@ data State = State
   }
 
 renderFeed :: Bool -> GenericFeed -> Widget ()
-renderFeed b (GenericFeed {..}) = txt $ bool "   " "-> " b <> T.pack gfTitle <> " (" <> gfURL <> ")"
+renderFeed _ (GenericFeed {..}) = txt $ T.pack gfTitle <> " (" <> gfURL <> ")"
 
 draw :: State -> [Widget ()]
 draw (State {..}) = [vCenter $ vBox [hCenter $ renderList renderFeed True sFeeds, str "", hCenter $ str "Press Q/Esc to quit"]]
@@ -38,14 +37,14 @@ handle :: State -> BrickEvent () () -> EventM () (Next State)
 handle s (VtyEvent (EvKey (KChar 'q') _)) = halt s
 handle s (VtyEvent (EvKey KEsc _)) = halt s
 handle s (VtyEvent e) = do
-  l <- handleListEvent e (sFeeds s)
+  l <- handleListEventVi handleListEvent e (sFeeds s)
   continue $ s { sFeeds = l }
 handle s _ = continue s
 
 theMap :: AttrMap
 theMap = attrMap V.defAttr
-    [ (listAttr,            V.white `on` V.blue)
-    , (listSelectedAttr,    V.blue `on` V.white)
+    [ (listAttr,            V.white `on` V.black)
+    , (listSelectedAttr,    V.white `on` V.blue)
     ]
 
 app :: App State () ()
