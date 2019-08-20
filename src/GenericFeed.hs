@@ -15,7 +15,7 @@ data GenericItem = GenericItem
   { giTitle :: Maybe Text -- Title displayed in list
   , giURL :: Maybe Text -- URL to follow
   , giAuthor :: Maybe Text
-  , giBody :: Maybe A.EntryContent -- Contents displayed when Enter is pressed
+  , giBody :: Maybe Text -- Contents displayed when Enter is pressed
   } deriving (Show)
 
 data GenericFeed = GenericFeed
@@ -24,12 +24,17 @@ data GenericFeed = GenericFeed
   , gfItems :: [GenericItem]
   } deriving (Show)
 
+entryContentToText :: A.EntryContent -> Text
+entryContentToText (A.TextContent x) = x
+entryContentToText (A.ExternalContent _ x) = x
+entryContentToText _ = T.pack "*HTML gibbreish*"
+
 atomItemToGeneric :: A.Entry -> GenericItem
 atomItemToGeneric e = GenericItem
   { giTitle = Just $ T.pack $ A.txtToString $ A.entryTitle e
   , giURL = Just $ A.entryId e
   , giAuthor = Just $ T.pack $ show $ A.entryAuthors e
-  , giBody = A.entryContent e
+  , giBody = entryContentToText <$> A.entryContent e
   }
 
 rssItemToGeneric :: R.RSSItem -> GenericItem
@@ -37,7 +42,7 @@ rssItemToGeneric e = GenericItem
   { giTitle = R.rssItemTitle e
   , giURL = R.rssItemLink e
   , giAuthor = R.rssItemAuthor e
-  , giBody = A.TextContent <$> R.rssItemDescription e
+  , giBody = R.rssItemDescription e
   }
 
 rss1ItemToGeneric :: R1.Item -> GenericItem
@@ -45,7 +50,7 @@ rss1ItemToGeneric (R1.Item {..}) = GenericItem
   { giTitle = Just itemTitle
   , giURL = Just itemURI
   , giAuthor = Nothing
-  , giBody = A.TextContent <$> itemDesc
+  , giBody = entryContentToText <$> A.TextContent <$> itemDesc
   }
 
 feedToGeneric :: Feed -> GenericFeed
