@@ -1,4 +1,11 @@
 module Main where
 
+import System.Environment
+
+import GenericFeed
+
 main :: IO ()
-main = putStrLn "Hello world!"
+main = do
+  [cFile] <- getArgs
+  feeds <- read <$> readFile cFile
+  putStrLn $ unlines $ map showGenericFeed feeds

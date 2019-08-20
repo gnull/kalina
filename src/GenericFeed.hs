@@ -16,13 +16,13 @@ data GenericItem = GenericItem
   , giURL :: Maybe Text -- URL to follow
   , giAuthor :: Maybe Text
   , giBody :: Maybe Text -- Contents displayed when Enter is pressed
-  } deriving (Show)
+  } deriving (Show, Read)
 
 data GenericFeed = GenericFeed
   { gfTitle :: String
   , gfURL :: Text
   , gfItems :: [GenericItem]
-  } deriving (Show)
+  } deriving (Show, Read)
 
 entryContentToText :: A.EntryContent -> Text
 entryContentToText (A.TextContent x) = x
