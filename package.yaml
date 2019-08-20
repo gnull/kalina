@@ -29,7 +29,11 @@ library:
   - GenericFeed
 
 executables:
-  rss-test:
-    source-dirs:      app
+  news-fetch:
+    source-dirs:      app/Fetch/
+    main:             Main.hs
+    dependencies:     rss-test
+  news-view:
+    source-dirs:      app/View/
     main:             Main.hs
     dependencies:     rss-test
