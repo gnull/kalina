@@ -23,19 +23,6 @@ import qualified Text.Atom.Feed as A
 import qualified Text.RSS.Syntax as R
 import qualified Text.RSS1.Syntax as R1
 
--- Removes empty lines and #-comments, extracts URLs from first word in each
--- line
-parseFeedsConfig :: String -> [String]
-parseFeedsConfig = filter (not . null) . map processUrlLine . lines
-  where
-    processUrlLine = headDefault "" . words . takeWhile (/= '#')
-    headDefault d [] = d
-    headDefault _ (x:_) = x
-
-showFeed :: Feed -> String
-showFeed (AtomFeed (A.Feed {A.feedTitle, A.feedEntries})) = show feedTitle ++ " ---- " ++ show feedEntries
-showFeed (RSSFeed (R.RSS {R.rssChannel = (R.RSSChannel {R.rssTitle, R.rssItems})})) = show rssTitle ++ " ---- " ++ show rssItems
-
 data GenericItem = GenericItem
   { giTitle :: Maybe Text -- Title displayed in list
   , giURL :: Maybe Text -- URL to follow
@@ -90,6 +77,17 @@ feedToGeneric (RSS1Feed (R1.Feed {R1.feedItems = i, R1.feedChannel = c})) = Gene
   , gfItems = map rss1ItemToGeneric i
   }
 feedToGeneric (XMLFeed _) = error "Unrecognized feed format"
+
+-- Removes empty lines and #-comments, extracts URLs from first word in each
+-- line
+parseFeedsConfig :: String -> [String]
+parseFeedsConfig = filter (not . null) . map processUrlLine . lines
+  where
+    processUrlLine = headDefault "" . words . takeWhile (/= '#')
+    headDefault d [] = d
+    headDefault _ (x:_) = x
+
+-- The next two functions are for debugging purposes
 
 showGenericItem :: GenericItem -> [String]
 showGenericItem (GenericItem {..}) =
