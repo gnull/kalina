@@ -7,5 +7,5 @@ import GenericFeed
 main :: IO ()
 main = do
   [cFile] <- getArgs
-  feeds <- read <$> readFile cFile
-  putStrLn $ unlines $ map showGenericFeed feeds
+  feeds <- (read :: String -> [GenericFeed])<$> readFile cFile
+  mapM_ showGenericFeed feeds

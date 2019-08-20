@@ -1,10 +1,15 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module GenericFeed where
+
+import Data.Maybe
+import Data.List
     
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 
 import Text.Feed.Types
 import qualified Text.Atom.Feed as A
@@ -82,15 +87,14 @@ parseFeedsConfig = filter (not . null) . map processUrlLine . lines
 
 -- The next two functions are for debugging purposes
 
-showGenericItem :: GenericItem -> [String]
-showGenericItem (GenericItem {..}) =
-  [ "----"
-  , show giTitle ++ " by " ++ show giAuthor
-  , show giURL
-  , show giBody
-  ]
+printGenericItem :: GenericItem -> IO ()
+printGenericItem (GenericItem {..}) = do
+  T.putStrLn $ fm giTitle <> " by " <> fm giAuthor
+  T.putStrLn $ fm giURL
+  T.putStrLn $ fm giBody
+  where fm = fromMaybe ("" :: Text)
 
-showGenericFeed :: GenericFeed -> String
-showGenericFeed (GenericFeed {..}) = unlines
-  $ [gfTitle ++ " (" ++ T.unpack gfURL ++ ")"]
-  ++ (map ("  " ++) $ concatMap showGenericItem gfItems)
+showGenericFeed :: GenericFeed -> IO ()
+showGenericFeed (GenericFeed {..}) = do
+  T.putStrLn $ T.pack gfTitle <> " (" <> gfURL <> ")"
+  sequence_ $ intersperse (putStrLn "---") $ map printGenericItem gfItems
