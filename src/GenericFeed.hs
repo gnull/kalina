@@ -3,21 +3,9 @@
 
 module GenericFeed where
     
-import System.Environment
-
-import Data.Char
-import Data.List
-import Data.Maybe
-
-import Control.Monad
-
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.ByteString.Lazy.Char8 (unpack)
 
-import Network.Wreq
-import Control.Lens
-import Text.Feed.Import
 import Text.Feed.Types
 import qualified Text.Atom.Feed as A
 import qualified Text.RSS.Syntax as R
