@@ -1,7 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Main where
+module GenericFeed where
     
 import System.Environment
 
@@ -103,12 +103,3 @@ showGenericFeed :: GenericFeed -> String
 showGenericFeed (GenericFeed {..}) = unlines
   $ [gfTitle ++ " (" ++ T.unpack gfURL ++ ")"]
   ++ (map ("  " ++) $ concatMap showGenericItem gfItems)
-
-main :: IO ()
-main = do
-  [f] <- getArgs
-  us <- parseFeedsConfig <$> readFile f
-  feeds <- forM us $ \u -> do
-    x <- get u
-    pure $ fromJust $ parseFeedString $ unpack $ x ^. responseBody
-  putStrLn $ unlines $ map (showGenericFeed . feedToGeneric) feeds
