@@ -19,6 +19,9 @@ dependencies:
   - bytestring >= 0.10 && < 1
   - text >= 1.2 && < 2
 
+ghc-options:
+- -Wall
+
 library:
   source-dirs: src
   exposed-modules:
