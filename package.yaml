@@ -19,9 +19,11 @@ dependencies:
   - lens >= 4.17 && < 5
   - bytestring >= 0.10 && < 1
   - text >= 1.2 && < 2
+  - brick >= 0.47 && < 1
+  - vty >= 5.25 && < 6
 
 ghc-options:
-- -Wall
+- -Wall -threaded
 
 library:
   source-dirs: src
