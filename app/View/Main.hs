@@ -37,7 +37,7 @@ renderFeed :: Bool -> GenericFeed -> Widget ()
 renderFeed _ (GenericFeed {..}) = txt $ T.pack gfTitle <> " (" <> gfURL <> ")"
 
 draw :: State -> [Widget ()]
-draw (State {..}) = [vCenter $ vBox [hCenter $ l, str "", hCenter $ str "Press Q to quit, Esc to go back"]]
+draw (State {..}) = [vCenter $ vBox [hCenter $ l, str "", hCenter $ str "Press Q to go back or quit"]]
   where
     l = case sItems of
       Nothing -> renderList renderFeed True sFeeds
