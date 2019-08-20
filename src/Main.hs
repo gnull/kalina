@@ -23,10 +23,14 @@ import qualified Text.Atom.Feed as A
 import qualified Text.RSS.Syntax as R
 import qualified Text.RSS1.Syntax as R1
 
-processUrlLine :: String -> String
-processUrlLine = headDefault "" . words . takeWhile (/= '#')
-  where headDefault d [] = d
-        headDefault _ (x:_) = x
+-- Removes empty lines and #-comments, extracts URLs from first word in each
+-- line
+parseFeedsConfig :: String -> [String]
+parseFeedsConfig = filter (not . null) . map processUrlLine . lines
+  where
+    processUrlLine = headDefault "" . words . takeWhile (/= '#')
+    headDefault d [] = d
+    headDefault _ (x:_) = x
 
 showFeed :: Feed -> String
 showFeed (AtomFeed (A.Feed {A.feedTitle, A.feedEntries})) = show feedTitle ++ " ---- " ++ show feedEntries
@@ -103,7 +107,7 @@ showGenericFeed (GenericFeed {..}) = unlines
 main :: IO ()
 main = do
   [f] <- getArgs
-  us <- filter (not . null) <$> map processUrlLine <$> lines <$> readFile f
+  us <- parseFeedsConfig <$> readFile f
   feeds <- forM us $ \u -> do
     x <- get u
     pure $ fromJust $ parseFeedString $ unpack $ x ^. responseBody
