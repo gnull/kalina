@@ -7,6 +7,7 @@ import System.Environment
 
 import Data.Maybe
 import Data.List
+import Data.Text () -- Instances
 import qualified Data.Text as T
 
 import GenericFeed
@@ -25,10 +26,25 @@ type MyList n e = GenericList n [] e
 toGenericList :: [a] -> MyList () a
 toGenericList x = list () x 1
 
+data MenuPosition
+  = MenuFeeds
+  | MenuItems (MyList () GenericItem)
+  | MenuContents (MyList () GenericItem) GenericItem
+
 data State = State
   { sFeeds :: MyList () GenericFeed
-  , sItems :: Maybe (MyList () GenericItem)
+  , sMenu  :: MenuPosition
   }
+
+renderContents :: GenericItem -> Widget ()
+renderContents (GenericItem {..}) =
+  txtWrap $ T.unlines $ catMaybes
+    [ ("Title: " <>) <$> giTitle
+    , ("Link: " <>) <$> giURL
+    , ("Author: " <>) <$> giAuthor
+    , Just ""
+    , giBody
+    ]
 
 renderItem :: Bool -> GenericItem -> Widget ()
 renderItem _ (GenericItem {..}) = txt $ fromMaybe "*Empty*" giTitle
@@ -36,31 +52,41 @@ renderItem _ (GenericItem {..}) = txt $ fromMaybe "*Empty*" giTitle
 renderFeed :: Bool -> GenericFeed -> Widget ()
 renderFeed _ (GenericFeed {..}) = txt $ T.pack gfTitle <> " (" <> gfURL <> ")"
 
+-- Sorry for the shit in this function
 draw :: State -> [Widget ()]
-draw (State {..}) = [vCenter $ vBox [hCenter $ l, str "", hCenter $ str "Press Q to go back or quit"]]
+draw (State {..}) =
+    case sMenu of
+      MenuContents _ c -> [f $ padBottom Max $ renderContents c]
+      _ -> [vCenter $ f l]
   where
-    l = case sItems of
-      Nothing -> renderList renderFeed True sFeeds
-      Just is -> renderList renderItem True is
+    f x = vBox [hCenter $ x, str "", hCenter $ str "Press Q to go back or quit"]
+    l = case sMenu of
+      MenuFeeds -> renderList renderFeed True sFeeds
+      MenuItems is -> renderList renderItem True is
+      MenuContents _ _ -> undefined
 
 handle :: State -> BrickEvent () () -> EventM () (Next State)
 handle s@(State {..}) (VtyEvent (EvKey (KChar 'q') _)) =
-  case sItems of
-    Nothing -> halt s
-    Just _ -> continue $ s { sItems = Nothing }
+  case sMenu of
+    MenuFeeds -> halt s
+    MenuItems _ -> continue $ s { sMenu = MenuFeeds }
+    MenuContents is _ -> continue $ s { sMenu = MenuItems is }
 handle s@(State {..}) (VtyEvent (EvKey KEnter _)) =
-  case sItems of
-    Nothing -> continue
-      $ s { sItems = Just $ toGenericList $ gfItems $ snd $ fromJust $ listSelectedElement sFeeds }
-    Just _ -> continue s
+  case sMenu of
+    MenuFeeds -> continue
+      $ s { sMenu = MenuItems $ toGenericList $ gfItems $ snd $ fromJust $ listSelectedElement sFeeds }
+    MenuItems is -> continue
+      $ s { sMenu = MenuContents is $ snd $ fromJust $ listSelectedElement is }
+    MenuContents _ _ -> continue s
 handle s@(State {..}) (VtyEvent e) =
-  case sItems of
-    Nothing -> do
+  case sMenu of
+    MenuFeeds -> do
       l <- handleListEventVi handleListEvent e sFeeds
       continue $ s { sFeeds = l }
-    Just is -> do
+    MenuItems is -> do
       l <- handleListEventVi handleListEvent e is
-      continue $ s { sItems = Just l }
+      continue $ s { sMenu = MenuItems l }
+    MenuContents _ _ -> continue s
 handle s _ = continue s
 
 theMap :: AttrMap
@@ -82,5 +108,5 @@ main :: IO ()
 main = do
   [cFile] <- getArgs
   feeds <- (read :: String -> [GenericFeed]) <$> readFile cFile
-  let s = State (toGenericList feeds) Nothing
+  let s = State (toGenericList feeds) MenuFeeds
   pure () <* defaultMain app s
