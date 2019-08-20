@@ -19,15 +19,16 @@ import Text.Feed.Types
 
 main :: IO ()
 main = do
-    [f] <- getArgs
-    us <- parseFeedsConfig <$> readFile f
-    feeds <- forM us $ \u -> do
+    [uFile, cFile] <- getArgs
+    us <- parseFeedsConfig <$> readFile uFile
+    feeds <- fmap catMaybes $ forM us $ \u -> do
       putStr $ u ++ "... "
       flip catch handler $ do
         x <- get u
         putStrLn "ok"
         pure $ parseFeedString $ unpack $ x ^. responseBody
-    putStrLn $ unlines $ map (showGenericFeed . feedToGeneric) $ catMaybes feeds
+    let gFeeds = map feedToGeneric feeds
+    writeFile cFile $ show gFeeds
   where
     handler :: HttpException -> IO (Maybe Feed)
     handler _ = do
