@@ -47,7 +47,7 @@ renderContents (GenericItem {..}) =
     ]
 
 renderItem :: Bool -> GenericItem -> Widget ()
-renderItem _ (GenericItem {..}) = txt $ fromMaybe "*Empty*" giTitle
+renderItem _ (GenericItem {..}) = txt $ fromMaybe "*No Date*" giDate <> "  " <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle)
 
 renderFeed :: Bool -> GenericFeed -> Widget ()
 renderFeed _ (GenericFeed {..}) = txt $ T.pack gfTitle <> " (" <> gfURL <> ")"

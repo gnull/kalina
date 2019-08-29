@@ -19,6 +19,7 @@ import qualified Text.RSS1.Syntax as R1
 data GenericItem = GenericItem
   { giTitle :: Maybe Text -- Title displayed in list
   , giURL :: Maybe Text -- URL to follow
+  , giDate :: Maybe Text -- TODO: Replace this with some better type for date
   , giAuthor :: Maybe Text
   , giBody :: Maybe Text -- Contents displayed when Enter is pressed
   } deriving (Show, Read)
@@ -38,6 +39,7 @@ atomItemToGeneric :: A.Entry -> GenericItem
 atomItemToGeneric e = GenericItem
   { giTitle = Just $ T.pack $ A.txtToString $ A.entryTitle e
   , giURL = Just $ A.entryId e
+  , giDate = Just $ A.entryUpdated e
   , giAuthor = Just $ T.pack $ show $ A.entryAuthors e
   , giBody = entryContentToText <$> A.entryContent e
   }
@@ -46,6 +48,7 @@ rssItemToGeneric :: R.RSSItem -> GenericItem
 rssItemToGeneric e = GenericItem
   { giTitle = R.rssItemTitle e
   , giURL = R.rssItemLink e
+  , giDate = R.rssItemPubDate e
   , giAuthor = R.rssItemAuthor e
   , giBody = R.rssItemDescription e
   }
@@ -54,6 +57,7 @@ rss1ItemToGeneric :: R1.Item -> GenericItem
 rss1ItemToGeneric (R1.Item {..}) = GenericItem
   { giTitle = Just itemTitle
   , giURL = Just itemURI
+  , giDate = Nothing
   , giAuthor = Nothing
   , giBody = entryContentToText <$> A.TextContent <$> itemDesc
   }
