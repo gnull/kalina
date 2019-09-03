@@ -19,7 +19,8 @@ import qualified Text.RSS1.Syntax as R1
 data GenericItem = GenericItem
   { giTitle :: Maybe Text -- Title displayed in list
   , giURL :: Maybe Text -- URL to follow
-  , giDate :: Maybe Text -- TODO: Replace this with some better type for date
+  , giDate :: Maybe Text -- TODO: Replace this with some better type for date.
+                         -- Also, newsboat seems to write `now` into this field instead of Nothing
   , giAuthor :: Maybe Text
   , giBody :: Maybe Text -- Contents displayed when Enter is pressed
   } deriving (Show, Read)
