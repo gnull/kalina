@@ -52,18 +52,15 @@ renderItem _ (GenericItem {..}) = txt $ fromMaybe "*No Date*" giDate <> "  " <> 
 renderFeed :: Bool -> GenericFeed -> Widget ()
 renderFeed _ (GenericFeed {..}) = txt $ T.pack gfTitle <> " (" <> gfURL <> ")"
 
--- Sorry for the shit in this function
 draw :: State -> [Widget ()]
 draw (State {..}) =
     case sMenu of
+      MenuFeeds -> g $ renderList renderFeed True sFeeds
+      MenuItems is -> g $ renderList renderItem True is
       MenuContents _ c -> [f $ padBottom Max $ renderContents c]
-      _ -> [vCenter $ f l]
   where
     f x = vBox [hCenter $ x, str "", hCenter $ str "Press Q to go back or quit"]
-    l = case sMenu of
-      MenuFeeds -> renderList renderFeed True sFeeds
-      MenuItems is -> renderList renderItem True is
-      MenuContents _ _ -> undefined
+    g x = [vCenter $ f x]
 
 handle :: State -> BrickEvent () () -> EventM () (Next State)
 handle s@(State {..}) (VtyEvent (EvKey (KChar 'q') _)) =
