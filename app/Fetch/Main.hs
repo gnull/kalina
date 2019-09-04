@@ -4,6 +4,7 @@ import GenericFeed
 
 import System.Environment
 
+import Control.Arrow ((&&&))
 import Data.Maybe
 
 import Control.Monad
@@ -27,7 +28,7 @@ main = do
         x <- get u
         putStrLn "ok"
         pure $ parseFeedString $ unpack $ x ^. responseBody
-    let gFeeds = map feedToGeneric feeds
+    let gFeeds = map (feedToGeneric &&& itemsToGeneric) feeds
     writeFile cFile $ show gFeeds
   where
     handler :: HttpException -> IO (Maybe Feed)

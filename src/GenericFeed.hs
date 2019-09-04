@@ -28,7 +28,6 @@ data GenericItem = GenericItem
 data GenericFeed = GenericFeed
   { gfTitle :: String
   , gfURL :: Text
-  , gfItems :: [GenericItem]
   } deriving (Show, Read)
 
 entryContentToText :: A.EntryContent -> Text
@@ -63,21 +62,24 @@ rss1ItemToGeneric (R1.Item {..}) = GenericItem
   , giBody = entryContentToText <$> A.TextContent <$> itemDesc
   }
 
+itemsToGeneric :: Feed -> [GenericItem]
+itemsToGeneric (AtomFeed (A.Feed {A.feedEntries = f})) = map atomItemToGeneric f
+itemsToGeneric (RSSFeed (R.RSS {R.rssChannel = R.RSSChannel {R.rssItems = r}}) ) = map rssItemToGeneric r
+itemsToGeneric (RSS1Feed (R1.Feed {R1.feedItems = i})) = map rss1ItemToGeneric i
+itemsToGeneric (XMLFeed _ ) = error "Unrecognized feed format"
+
 feedToGeneric :: Feed -> GenericFeed
 feedToGeneric (AtomFeed f) = GenericFeed
   { gfTitle = A.txtToString $ A.feedTitle f
   , gfURL = A.feedId f
-  , gfItems = map atomItemToGeneric $ A.feedEntries f
   }
 feedToGeneric (RSSFeed (R.RSS {R.rssChannel = r})) = GenericFeed
   { gfTitle = T.unpack $ R.rssTitle r
   , gfURL = R.rssLink r
-  , gfItems = map rssItemToGeneric $ R.rssItems r
   }
-feedToGeneric (RSS1Feed (R1.Feed {R1.feedItems = i, R1.feedChannel = c})) = GenericFeed
+feedToGeneric (RSS1Feed (R1.Feed {R1.feedChannel = c})) = GenericFeed
   { gfTitle = T.unpack $ R1.channelTitle c
   , gfURL = R1.channelURI c
-  , gfItems = map rss1ItemToGeneric i
   }
 feedToGeneric (XMLFeed _) = error "Unrecognized feed format"
 
@@ -99,7 +101,10 @@ printGenericItem (GenericItem {..}) = do
   T.putStrLn $ fm giBody
   where fm = fromMaybe ("" :: Text)
 
+printGenericItems :: [GenericItem] -> IO ()
+printGenericItems = sequence_ . intersperse (putStrLn "---") . map printGenericItem
+
 showGenericFeed :: GenericFeed -> IO ()
-showGenericFeed (GenericFeed {..}) = do
-  T.putStrLn $ T.pack gfTitle <> " (" <> gfURL <> ")"
-  sequence_ $ intersperse (putStrLn "---") $ map printGenericItem gfItems
+showGenericFeed (GenericFeed {..}) = T.putStrLn $ T.pack gfTitle <> " (" <> gfURL <> ")"
+
+type CacheEntry = (GenericFeed, [GenericItem])

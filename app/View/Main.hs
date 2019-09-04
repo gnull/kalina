@@ -32,7 +32,7 @@ data MenuPosition
   | MenuContents (MyList () GenericItem) GenericItem
 
 data State = State
-  { sFeeds :: MyList () GenericFeed
+  { sFeeds :: MyList () CacheEntry
   , sMenu  :: MenuPosition
   }
 
@@ -52,10 +52,13 @@ renderItem _ (GenericItem {..}) = txt $ fromMaybe "*No Date*" giDate <> "  " <> 
 renderFeed :: Bool -> GenericFeed -> Widget ()
 renderFeed _ (GenericFeed {..}) = txt $ T.pack gfTitle <> " (" <> gfURL <> ")"
 
+renderCache :: Bool -> CacheEntry -> Widget ()
+renderCache b (f, _) = renderFeed b f
+
 draw :: State -> [Widget ()]
 draw (State {..}) =
     case sMenu of
-      MenuFeeds -> g $ renderList renderFeed True sFeeds
+      MenuFeeds -> g $ renderList renderCache True sFeeds
       MenuItems is -> g $ renderList renderItem True is
       MenuContents _ c -> [f $ padBottom Max $ renderContents c]
   where
@@ -71,7 +74,7 @@ handle s@(State {..}) (VtyEvent (EvKey (KChar 'q') _)) =
 handle s@(State {..}) (VtyEvent (EvKey KEnter _)) =
   case sMenu of
     MenuFeeds -> continue
-      $ s { sMenu = MenuItems $ toGenericList $ gfItems $ snd $ fromJust $ listSelectedElement sFeeds }
+      $ s { sMenu = MenuItems $ toGenericList $ snd $ snd $ fromJust $ listSelectedElement sFeeds }
     MenuItems is -> continue
       $ s { sMenu = MenuContents is $ snd $ fromJust $ listSelectedElement is }
     MenuContents _ _ -> continue s
@@ -104,6 +107,6 @@ app = App
 main :: IO ()
 main = do
   [cFile] <- getArgs
-  feeds <- (read :: String -> [GenericFeed]) <$> readFile cFile
+  feeds <- (read :: String -> [CacheEntry]) <$> readFile cFile
   let s = State (toGenericList feeds) MenuFeeds
   pure () <* defaultMain app s
