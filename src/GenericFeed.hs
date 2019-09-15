@@ -1,11 +1,13 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 
 module GenericFeed where
 
 import Data.Maybe
 import Data.List
+import Control.Arrow ((&&&))
     
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -23,7 +25,7 @@ data GenericItem = GenericItem
                          -- Also, newsboat seems to write `now` into this field instead of Nothing
   , giAuthor :: Maybe Text
   , giBody :: Maybe Text -- Contents displayed when Enter is pressed
-  } deriving (Show, Read)
+  } deriving (Show, Read, Eq)
 
 data GenericFeed = GenericFeed
   { gfTitle :: String
@@ -107,4 +109,16 @@ printGenericItems = sequence_ . intersperse (putStrLn "---") . map printGenericI
 showGenericFeed :: GenericFeed -> IO ()
 showGenericFeed (GenericFeed {..}) = T.putStrLn $ T.pack gfTitle <> " (" <> gfURL <> ")"
 
-type CacheEntry = (GenericFeed, [GenericItem])
+type ItemStatus = Bool
+type CacheEntry = (GenericFeed, [(GenericItem, ItemStatus)])
+
+newCacheEntry :: GenericFeed -> [GenericItem] -> CacheEntry
+newCacheEntry f is = (f, map (, False) is)
+
+-- TODO: Terribly inefficient, but will do for now
+updateCacheEntry :: GenericFeed -> [GenericItem] -> CacheEntry -> CacheEntry
+updateCacheEntry f is (_, is') = (f, map (, False) new ++ is')
+  where
+    new = filter (\i -> elemBy ((giTitle &&& giURL) . fst) (giTitle &&& giURL $ i) is') is
+    elemBy :: Eq b => (a -> b) -> b -> [a] -> Bool
+    elemBy g x l = elem x $ map g l

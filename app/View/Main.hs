@@ -28,11 +28,11 @@ toGenericList x = list () x 1
 
 data MenuPosition
   = MenuFeeds
-  | MenuItems (MyList () GenericItem)
-  | MenuContents (MyList () GenericItem) GenericItem
+  | MenuItems (MyList () (GenericItem, ItemStatus))
+  | MenuContents (MyList () (GenericItem, ItemStatus)) GenericItem
 
 data State = State
-  { sFeeds :: MyList () CacheEntry
+  { sFeeds :: MyList () (String, CacheEntry)
   , sMenu  :: MenuPosition
   }
 
@@ -46,14 +46,14 @@ renderContents (GenericItem {..}) =
     , giBody
     ]
 
-renderItem :: Bool -> GenericItem -> Widget ()
-renderItem _ (GenericItem {..}) = txt $ fromMaybe "*No Date*" giDate <> "  " <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle)
+renderItem :: Bool -> (GenericItem , ItemStatus)-> Widget ()
+renderItem _ (GenericItem {..}, _) = txt $ fromMaybe "*No Date*" giDate <> "  " <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle)
 
 renderFeed :: Bool -> GenericFeed -> Widget ()
 renderFeed _ (GenericFeed {..}) = txt $ T.pack gfTitle <> " (" <> gfURL <> ")"
 
-renderCache :: Bool -> CacheEntry -> Widget ()
-renderCache b (f, _) = renderFeed b f
+renderCache :: Bool -> (String, CacheEntry) -> Widget ()
+renderCache b (_, (f, _)) = renderFeed b f
 
 draw :: State -> [Widget ()]
 draw (State {..}) =
@@ -74,9 +74,9 @@ handle s@(State {..}) (VtyEvent (EvKey (KChar 'q') _)) =
 handle s@(State {..}) (VtyEvent (EvKey KEnter _)) =
   case sMenu of
     MenuFeeds -> continue
-      $ s { sMenu = MenuItems $ toGenericList $ snd $ snd $ fromJust $ listSelectedElement sFeeds }
+      $ s { sMenu = MenuItems $ toGenericList $ snd $ snd $ snd $ fromJust $ listSelectedElement sFeeds }
     MenuItems is -> continue
-      $ s { sMenu = MenuContents is $ snd $ fromJust $ listSelectedElement is }
+      $ s { sMenu = MenuContents is $ fst $ snd $ fromJust $ listSelectedElement is }
     MenuContents _ _ -> continue s
 handle s@(State {..}) (VtyEvent e) =
   case sMenu of
@@ -107,6 +107,6 @@ app = App
 main :: IO ()
 main = do
   [cFile] <- getArgs
-  feeds <- (read :: String -> [CacheEntry]) <$> readFile cFile
+  feeds <- (read :: String -> [(String, CacheEntry)]) <$> readFile cFile
   let s = State (toGenericList feeds) MenuFeeds
   pure () <* defaultMain app s

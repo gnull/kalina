@@ -1,10 +1,12 @@
+{-# LANGUAGE TupleSections #-}
+
 module Main where
 
 import GenericFeed
 
 import System.Environment
 
-import Control.Arrow ((&&&))
+import Control.Arrow (second)
 import Data.Maybe
 
 import Control.Monad
@@ -27,11 +29,11 @@ main = do
       flip catch handler $ do
         x <- get u
         putStrLn "ok"
-        pure $ parseFeedString $ unpack $ x ^. responseBody
-    let gFeeds = map (feedToGeneric &&& itemsToGeneric) feeds
+        pure $ fmap (u,) $ parseFeedString $ unpack $ x ^. responseBody
+    let gFeeds = map (second $ \f -> newCacheEntry (feedToGeneric f) (itemsToGeneric f)) feeds
     writeFile cFile $ show gFeeds
   where
-    handler :: HttpException -> IO (Maybe Feed)
+    handler :: HttpException -> IO (Maybe (String, Feed))
     handler _ = do
       putStrLn "HttpException"
       pure Nothing
