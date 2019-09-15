@@ -24,16 +24,16 @@ main :: IO ()
 main = do
     [uFile, cFile] <- getArgs
     us <- parseFeedsConfig <$> readFile uFile
-    feeds <- fmap catMaybes $ forM us $ \u -> do
+    feeds <- forM us $ \u -> do
       putStr $ u ++ "... "
-      flip catch handler $ do
+      fmap (u,) $ flip catch handler $ do
         x <- get u
         putStrLn "ok"
-        pure $ fmap (u,) $ parseFeedString $ unpack $ x ^. responseBody
-    let gFeeds = map (second $ \f -> newCacheEntry (feedToGeneric f) (itemsToGeneric f)) feeds
+        pure $ parseFeedString $ unpack $ x ^. responseBody
+    let gFeeds = map (second $ fmap $ \f -> newCacheEntry (feedToGeneric f) (itemsToGeneric f)) feeds
     writeFile cFile $ show gFeeds
   where
-    handler :: HttpException -> IO (Maybe (String, Feed))
+    handler :: HttpException -> IO (Maybe Feed)
     handler _ = do
       putStrLn "HttpException"
       pure Nothing

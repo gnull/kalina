@@ -32,7 +32,7 @@ data MenuPosition
   | MenuContents (MyList () (GenericItem, ItemStatus)) GenericItem
 
 data State = State
-  { sFeeds :: MyList () (String, CacheEntry)
+  { sFeeds :: MyList () (String, Maybe CacheEntry)
   , sMenu  :: MenuPosition
   }
 
@@ -52,8 +52,9 @@ renderItem _ (GenericItem {..}, _) = txt $ fromMaybe "*No Date*" giDate <> "  " 
 renderFeed :: Bool -> GenericFeed -> Widget ()
 renderFeed _ (GenericFeed {..}) = txt $ T.pack gfTitle <> " (" <> gfURL <> ")"
 
-renderCache :: Bool -> (String, CacheEntry) -> Widget ()
-renderCache b (_, (f, _)) = renderFeed b f
+renderCache :: Bool -> (String, Maybe CacheEntry) -> Widget ()
+renderCache b (_, Just (f, _)) = renderFeed b f
+renderCache _ (s, Nothing) = txt $ T.pack s <> " *Not Fetched*"
 
 draw :: State -> [Widget ()]
 draw (State {..}) =
@@ -74,7 +75,9 @@ handle s@(State {..}) (VtyEvent (EvKey (KChar 'q') _)) =
 handle s@(State {..}) (VtyEvent (EvKey KEnter _)) =
   case sMenu of
     MenuFeeds -> continue
-      $ s { sMenu = MenuItems $ toGenericList $ snd $ snd $ snd $ fromJust $ listSelectedElement sFeeds }
+      $ case snd $ snd $ fromJust $ listSelectedElement sFeeds of
+          Nothing -> s
+          Just (_, is) -> s { sMenu = MenuItems $ toGenericList is}
     MenuItems is -> continue
       $ s { sMenu = MenuContents is $ fst $ snd $ fromJust $ listSelectedElement is }
     MenuContents _ _ -> continue s
@@ -107,6 +110,6 @@ app = App
 main :: IO ()
 main = do
   [cFile] <- getArgs
-  feeds <- (read :: String -> [(String, CacheEntry)]) <$> readFile cFile
+  feeds <- (read :: String -> [(String, Maybe CacheEntry)]) <$> readFile cFile
   let s = State (toGenericList feeds) MenuFeeds
   pure () <* defaultMain app s
