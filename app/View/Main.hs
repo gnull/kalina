@@ -61,10 +61,10 @@ renderContents (GenericItem {..}) =
     ]
 
 renderItem :: Bool -> (GenericItem , ItemStatus)-> Widget ()
-renderItem _ (GenericItem {..}, _) = txt $ fromMaybe "*No Date*" giDate <> "  " <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle)
+renderItem _ (GenericItem {..}, _) = padRight Max $ txt $ fromMaybe "*No Date*" giDate <> "  " <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle)
 
 renderFeed :: Bool -> GenericFeed -> Widget ()
-renderFeed _ (GenericFeed {..}) = txt $ T.pack gfTitle <> " (" <> gfURL <> ")"
+renderFeed _ (GenericFeed {..}) = padRight Max $ txt $ T.pack gfTitle <> " (" <> gfURL <> ")"
 
 renderCache :: Bool -> (String, Maybe CacheEntry) -> Widget ()
 renderCache b (_, Just (f, _)) = renderFeed b f
