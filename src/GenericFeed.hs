@@ -112,6 +112,8 @@ showGenericFeed (GenericFeed {..}) = T.putStrLn $ T.pack gfTitle <> " (" <> gfUR
 type ItemStatus = Bool
 type CacheEntry = (GenericFeed, [(GenericItem, ItemStatus)])
 
+type CacheFile = [(String, Maybe CacheEntry)]
+
 newCacheEntry :: GenericFeed -> [GenericItem] -> CacheEntry
 newCacheEntry f is = (f, map (, False) is)
 

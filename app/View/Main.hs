@@ -18,6 +18,8 @@ import Brick.Widgets.Center
 import Graphics.Vty.Input.Events
 import qualified Graphics.Vty as V
 
+import Options.Applicative hiding (str)
+
 instance Splittable [] where
   splitAt = Data.List.splitAt
 
@@ -112,9 +114,39 @@ app = App
   , appChooseCursor = neverShowCursor
   }
 
+data Options = Options
+  { oUrls :: FilePath
+  , oCache :: FilePath
+  } deriving (Show)
+
+options :: Parser Options
+options = Options
+  <$> strOption
+      ( long "urls"
+     <> short 'u'
+     <> help "A file with list of RSS feeds (compatible with newsboat)"
+     <> metavar "FILE"
+     <> value "~/.newsboat/urls"
+     <> showDefault )
+  <*> strOption
+      ( long "cache"
+     <> short 'c'
+     <> help "A file in which to store cached RSS entries and read/unread status"
+     <> metavar "FILE"
+     <> value "/tmp/news-cache"
+     <> showDefault )
+
+parseOpts :: IO Options
+parseOpts = execParser opts
+  where
+    opts = info (options <**> helper)
+      ( fullDesc
+     <> progDesc "Open TUI to fetch and display RSS feeds"
+     <> header "news-view -- An RSS reader written in Haskell and inspired by newsboat" )
+
 main :: IO ()
 main = do
-  [cFile] <- getArgs
-  feeds <- (read :: String -> [(String, Maybe CacheEntry)]) <$> readFile cFile
+  Options {..} <- parseOpts
+  feeds <- (read :: String -> CacheFile) <$> readFile oCache
   let s = LevelFeeds (toGenericList feeds)
   pure () <* defaultMain app s

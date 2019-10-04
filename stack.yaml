@@ -37,7 +37,8 @@ packages:
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
-# extra-deps: []
+extra-deps:
+- optparse-applicative-0.15.1.0@sha256:a0b9924d88a17c36cd8e6839d7dd2138419dd8f08cbb4f9af18f3c367b0c69a3,4673
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
