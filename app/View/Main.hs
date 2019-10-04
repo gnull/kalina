@@ -9,6 +9,7 @@ import Data.Maybe
 import Data.List
 import Data.Text () -- Instances
 import qualified Data.Text as T
+import Control.Monad.IO.Class (MonadIO(..))
 
 import GenericFeed
 
@@ -83,6 +84,14 @@ draw s =
     g x = [vCenter $ f x]
 
 handle :: State -> BrickEvent () () -> EventM () (Next State)
+handle s (VtyEvent (EvKey (KChar 'r') _)) =
+  case s of
+    LevelFeeds fs -> do
+      let (u, c) = snd $ fromJust $ listSelectedElement fs
+      (f, is) <- liftIO $ fetchFeed u
+      let c' = Just $ fromMaybe (newCacheEntry f is) $ fmap (updateCacheEntry f is) c
+      continue $ LevelFeeds $ listModify (const (u, c')) fs
+    _ -> continue s
 handle s (VtyEvent (EvKey (KChar 'q') _)) =
   case s of
     LevelFeeds _ -> halt s
@@ -147,6 +156,8 @@ parseOpts = execParser opts
 main :: IO ()
 main = do
   Options {..} <- parseOpts
-  feeds <- (read :: String -> CacheFile) <$> readFile oCache
+  urls <- parseFeedsConfig <$> readFile oUrls
+  feeds <- refreshCacheFileWithUrls urls <$> readCacheFile oCache
+  writeCacheFile oCache feeds
   let s = LevelFeeds (toGenericList feeds)
   pure () <* defaultMain app s

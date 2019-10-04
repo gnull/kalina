@@ -5,9 +5,12 @@
 
 module GenericFeed where
 
+import Data.Either (fromRight)
+import Control.Exception (try)
 import Data.Maybe
 import Data.List
 import Control.Arrow ((&&&))
+import Control.Monad (join)
     
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -17,6 +20,14 @@ import Text.Feed.Types
 import qualified Text.Atom.Feed as A
 import qualified Text.RSS.Syntax as R
 import qualified Text.RSS1.Syntax as R1
+
+import Data.ByteString.Lazy.Char8 (unpack)
+
+import Network.Wreq
+import Network.HTTP.Client (HttpException)
+import Control.Lens
+import Text.Feed.Import
+import Text.Feed.Types
 
 data GenericItem = GenericItem
   { giTitle :: Maybe Text -- Title displayed in list
@@ -114,6 +125,23 @@ type CacheEntry = (GenericFeed, [(GenericItem, ItemStatus)])
 
 type CacheFile = [(String, Maybe CacheEntry)]
 
+-- Read CacheFile from a file and make sure the file is closed
+readCacheFile :: FilePath -> IO CacheFile
+readCacheFile f = do
+  s <- (fmap $ fromRight Nothing) $ (fmap $ fmap Just) $ (try :: IO String -> IO (Either IOError String)) $ readFile f
+  let s' = fromMaybe [] $ fmap read $ fmap (\x -> seq (length x) x) s
+  pure s'
+
+writeCacheFile :: FilePath -> CacheFile -> IO ()
+writeCacheFile f = writeFile f . show
+
+refreshCacheFileWithUrls :: [FilePath] -> CacheFile -> CacheFile
+refreshCacheFileWithUrls us cf = map f us
+  where f u = (u, join $ lookup u cf)
+
+cacheFileUrls :: CacheFile -> [FilePath]
+cacheFileUrls = map fst
+
 newCacheEntry :: GenericFeed -> [GenericItem] -> CacheEntry
 newCacheEntry f is = (f, map (, False) is)
 
@@ -124,3 +152,11 @@ updateCacheEntry f is (_, is') = (f, map (, False) new ++ is')
     new = filter (\i -> elemBy ((giTitle &&& giURL) . fst) (giTitle &&& giURL $ i) is') is
     elemBy :: Eq b => (a -> b) -> b -> [a] -> Bool
     elemBy g x l = elem x $ map g l
+
+----
+
+fetchFeed :: FilePath -> IO (GenericFeed, [GenericItem])
+fetchFeed u = do
+  x <- get u
+  let x' = fromJust $ parseFeedString $ unpack $ x ^. responseBody
+  pure $ (feedToGeneric x', itemsToGeneric x')
