@@ -30,6 +30,7 @@ library:
   source-dirs: src
   exposed-modules:
   - GenericFeed
+  - Menu
 
 executables:
   news-fetch:
