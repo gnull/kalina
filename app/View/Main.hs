@@ -3,8 +3,6 @@
 
 module Main where
 
-import System.Environment
-
 import Data.Maybe
 import Data.List
 import Data.Text () -- Instances
@@ -29,6 +27,7 @@ type L e = MyList () e
 
 toGenericList :: [a] -> MyList () a
 toGenericList x = list () x 1
+
 
 -- Internal state of the interface and a couple of itw utility functions
 

@@ -5,16 +5,12 @@
 
 module GenericFeed where
 
-import Data.Either (fromRight)
 import Control.Exception (try)
 import Data.Maybe
 import Data.List
 import Control.Arrow ((&&&))
 import Control.Monad (join, (>=>))
 
-import System.IO
-import System.IO.Error
-    
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -27,10 +23,8 @@ import qualified Text.RSS1.Syntax as R1
 import Data.ByteString.Lazy.Char8 (unpack)
 
 import Network.Wreq
-import Network.HTTP.Client (HttpException)
 import Control.Lens
 import Text.Feed.Import
-import Text.Feed.Types
 
 data GenericItem = GenericItem
   { giTitle :: Maybe Text -- Title displayed in list
