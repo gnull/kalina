@@ -10,7 +10,10 @@ import Control.Exception (try)
 import Data.Maybe
 import Data.List
 import Control.Arrow ((&&&))
-import Control.Monad (join)
+import Control.Monad (join, (>=>))
+
+import System.IO
+import System.IO.Error
     
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -128,9 +131,11 @@ type CacheFile = [(String, Maybe CacheEntry)]
 -- Read CacheFile from a file and make sure the file is closed
 readCacheFile :: FilePath -> IO CacheFile
 readCacheFile f = do
-  s <- (fmap $ fromRight Nothing) $ (fmap $ fmap Just) $ (try :: IO String -> IO (Either IOError String)) $ readFile f
-  let s' = fromMaybe [] $ fmap read $ fmap (\x -> seq (length x) x) s
-  pure s'
+  let readForSure = readFile >=> (\s -> seq (length s) $ pure s)
+  es <- (try :: IO String -> IO (Either IOError String)) $ readForSure f
+  case es of
+    Left _ -> pure []
+    Right s -> pure $ read s
 
 writeCacheFile :: FilePath -> CacheFile -> IO ()
 writeCacheFile f = writeFile f . show
