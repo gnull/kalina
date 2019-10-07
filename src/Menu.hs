@@ -76,7 +76,7 @@ drawMenu s =
       LevelItems _ _ is -> g $ renderList renderItem True is
       LevelContents _ _ _ (c, _) -> f $ padBottom Max $ renderContents c
   where
-    f x = vBox [hCenter $ x, str "", hCenter $ str "Press Q to go back or quit"]
+    f x = vBox [x, str "", hCenter $ str "Press Q to go back or quit"]
     g x = vCenter $ f x
 
 handleMenu :: MenuState -> Event -> EventM () (Next MenuState)
