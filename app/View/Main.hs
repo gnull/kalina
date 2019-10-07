@@ -83,8 +83,8 @@ draw s =
     f x = vBox [hCenter $ x, str "", hCenter $ str "Press Q to go back or quit"]
     g x = [vCenter $ f x]
 
-handle :: State -> BrickEvent () () -> EventM () (Next State)
-handle s (VtyEvent (EvKey (KChar 'r') _)) =
+handle :: (CacheFile -> IO ()) -> State -> BrickEvent () () -> EventM () (Next State)
+handle _ s (VtyEvent (EvKey (KChar 'r') _)) =
   case s of
     LevelFeeds fs -> do
       let (u, c) = snd $ fromJust $ listSelectedElement fs
@@ -92,12 +92,12 @@ handle s (VtyEvent (EvKey (KChar 'r') _)) =
       let c' = Just $ fromMaybe (newCacheEntry f is) $ fmap (updateCacheEntry f is) c
       continue $ LevelFeeds $ listModify (const (u, c')) fs
     _ -> continue s
-handle s (VtyEvent (EvKey (KChar 'q') _)) =
+handle _ s (VtyEvent (EvKey (KChar 'q') _)) =
   case s of
     LevelFeeds _ -> halt s
     _ -> continue $ stateUp s
-handle s (VtyEvent (EvKey KEnter _)) = continue $ stateDown s
-handle s (VtyEvent e) =
+handle _ s (VtyEvent (EvKey KEnter _)) = continue $ stateDown s
+handle _ s (VtyEvent e) =
   case s of
     LevelFeeds fs -> do
       fs' <- handleListEventVi handleListEvent e fs
@@ -106,7 +106,7 @@ handle s (VtyEvent e) =
       is' <- handleListEventVi handleListEvent e is
       continue $ LevelItems fs f is'
     LevelContents _ _ _ _ -> continue s
-handle s _ = continue s
+handle _ s _ = continue s
 
 theMap :: AttrMap
 theMap = attrMap V.defAttr
@@ -114,10 +114,10 @@ theMap = attrMap V.defAttr
     , (listSelectedAttr,    V.white `on` V.blue)
     ]
 
-app :: App State () ()
-app = App
+app :: (CacheFile -> IO ()) -> App State () ()
+app f = App
   { appDraw = draw
-  , appHandleEvent = handle
+  , appHandleEvent = handle f
   , appStartEvent = return
   , appAttrMap = const $ theMap
   , appChooseCursor = neverShowCursor
@@ -158,6 +158,7 @@ main = do
   Options {..} <- parseOpts
   urls <- parseFeedsConfig <$> readFile oUrls
   feeds <- refreshCacheFileWithUrls urls <$> readCacheFile oCache
-  writeCacheFile oCache feeds
+  let saveCache = writeCacheFile oCache
+  saveCache feeds
   let s = LevelFeeds (toGenericList feeds)
-  pure () <* defaultMain app s
+  pure () <* defaultMain (app saveCache) s
