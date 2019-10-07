@@ -71,7 +71,7 @@ renderFeed _ (GenericFeed {..}) = padRight Max $ txt $ T.pack gfTitle <> " (" <>
 
 renderCache :: Bool -> (String, Maybe CacheEntry) -> Widget ()
 renderCache b (_, Just (f, _)) = renderFeed b f
-renderCache _ (s, Nothing) = txt $ T.pack s <> " *Not Fetched*"
+renderCache _ (s, Nothing) = padRight Max $ txt $ T.pack s <> " *Not Fetched*"
 
 draw :: State -> [Widget ()]
 draw s =
