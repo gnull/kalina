@@ -3,6 +3,8 @@
 
 module Main where
 
+import System.Directory (getHomeDirectory)
+import System.FilePath ((</>))
 import Data.Text () -- Instances
 
 import GenericFeed
@@ -56,14 +58,14 @@ data Options = Options
   , oCache :: FilePath
   } deriving (Show)
 
-options :: Parser Options
-options = Options
+options :: FilePath -> Parser Options
+options home = Options
   <$> strOption
       ( long "urls"
      <> short 'u'
      <> help "A file with list of RSS feeds (compatible with newsboat)"
      <> metavar "FILE"
-     <> value "~/.newsboat/urls"
+     <> value (home </> ".newsboat/urls")
      <> action "file"
      <> showDefault )
   <*> strOption
@@ -76,9 +78,11 @@ options = Options
      <> showDefault )
 
 parseOpts :: IO Options
-parseOpts = execParser opts
+parseOpts = do
+    home <- getHomeDirectory
+    execParser $ opts home
   where
-    opts = info (options <**> helper)
+    opts home = info (options home <**> helper)
       ( fullDesc
      <> progDesc "Open TUI to fetch and display RSS feeds"
      <> header "news-view -- An RSS reader written in Haskell and inspired by newsboat" )

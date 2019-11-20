@@ -22,6 +22,8 @@ dependencies:
   - brick >= 0.47 && < 1
   - vty >= 5.25 && < 6
   - optparse-applicative >= 0.15 && < 1
+  - directory >= 1.3 && < 2
+  - filepath >= 1.4 && < 2
 
 ghc-options:
 - -Wall -threaded
