@@ -14,6 +14,7 @@ import GenericFeed
 import Brick
 import Brick.Widgets.List
 import Brick.Widgets.Center
+import Brick.Widgets.Border
 import Graphics.Vty.Input.Events
 
 instance Splittable [] where
@@ -76,7 +77,15 @@ drawMenu s =
       LevelItems _ _ is -> g $ renderList renderItem True is
       LevelContents _ _ _ (c, _) -> f $ padBottom Max $ renderContents c
   where
-    f x = vBox [x, str "", hCenter $ str "Press Q to go back or quit"]
+    f x = vBox
+      [x
+      , str ""
+      , vLimit 3 $ borderWithLabel (str "help") $
+            str " q - back/quit "
+        <+> vBorder
+        <+> str " Enter - open an entry "
+        <+> vBorder
+        <+> str " h,j,k,l - navigation "]
     g x = vCenter $ f x
 
 handleMenu :: MenuState -> Event -> EventM () (Next MenuState)
