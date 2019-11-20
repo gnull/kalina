@@ -65,6 +65,7 @@ renderContents (GenericItem {..}) =
     [ ("Title: " <>) <$> giTitle
     , ("Link: " <>) <$> giURL
     , ("Author: " <>) <$> giAuthor
+    , ("Date: " <>) <$> giDate
     , Just ""
     , giBody
     ]
