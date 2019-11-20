@@ -18,7 +18,12 @@ import Menu
 data State = State MenuState
 
 cacheFromState :: State -> CacheFile
-cacheFromState = undefined
+cacheFromState (State m) = listElements s
+  where
+    s = case m of
+      LevelFeeds x -> x
+      LevelItems x _ _ -> x
+      LevelContents x _ _ _ -> x
 
 initialState :: CacheFile -> State
 initialState = State . initialMenuState
