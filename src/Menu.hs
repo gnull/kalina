@@ -71,9 +71,11 @@ renderContents (GenericItem {..}) =
 
 renderItem :: Bool -> (GenericItem , ItemStatus)-> Widget ()
 renderItem _ (GenericItem {..}, r) = padRight Max $ markup
-  $   (fromText $ fromMaybe "*No Date*" giDate)
-   <> fromText "  "
-   <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle) @? if r then "read-item" else "unread-item"
+  $ (@? if r then "read-item" else "unread-item") $
+      (if r then "   " else " N ")
+   <> (fromMaybe "*No Date*" giDate)
+   <> "  "
+   <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle)
 
 renderFeed :: Bool -> GenericFeed -> Widget ()
 renderFeed _ (GenericFeed {..}) = padRight Max $ txt $ T.pack gfTitle <> " (" <> gfURL <> ")"
