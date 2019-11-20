@@ -12,10 +12,13 @@ import Control.Monad.IO.Class (MonadIO(..))
 import GenericFeed
 
 import Brick
+import Brick.Markup
 import Brick.Widgets.List
 import Brick.Widgets.Center
 import Brick.Widgets.Border
 import Graphics.Vty.Input.Events
+
+import Data.Text.Markup (fromText)
 
 instance Splittable [] where
   splitAt = Data.List.splitAt
@@ -61,7 +64,10 @@ renderContents (GenericItem {..}) =
     ]
 
 renderItem :: Bool -> (GenericItem , ItemStatus)-> Widget ()
-renderItem _ (GenericItem {..}, _) = padRight Max $ txt $ fromMaybe "*No Date*" giDate <> "  " <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle)
+renderItem _ (GenericItem {..}, r) = padRight Max $ markup
+  $   (fromText $ fromMaybe "*No Date*" giDate)
+   <> fromText "  "
+   <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle) @? if r then "read-item" else "unread-item"
 
 renderFeed :: Bool -> GenericFeed -> Widget ()
 renderFeed _ (GenericFeed {..}) = padRight Max $ txt $ T.pack gfTitle <> " (" <> gfURL <> ")"

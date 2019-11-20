@@ -39,6 +39,7 @@ theMap :: AttrMap
 theMap = attrMap V.defAttr
     [ (listAttr,            V.white `on` V.black)
     , (listSelectedAttr,    V.white `on` V.blue)
+    , ("unread-item",       V.withStyle V.currentAttr V.bold)
     ]
 
 app :: App State () ()
