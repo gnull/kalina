@@ -89,6 +89,8 @@ drawMenu s =
       , vLimit 3 $ borderWithLabel (str "help") $
             str " q - back/quit "
         <+> vBorder
+        <+> str " r - fetch selected feed "
+        <+> vBorder
         <+> str " Enter - open an entry "
         <+> vBorder
         <+> str " h,j,k,l - navigation "]
