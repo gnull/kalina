@@ -9,6 +9,8 @@ import Data.Text () -- Instances
 import qualified Data.Text as T
 import Control.Monad.IO.Class (MonadIO(..))
 
+import Data.Functor ((<&>))
+
 import GenericFeed
 
 import Brick
@@ -44,8 +46,12 @@ stateDown s@(LevelFeeds fs) =
     Nothing -> s
     Just (_, is) -> LevelItems fs f $ toGenericList is
 stateDown (LevelItems fs f is) =
-  let i = snd $ fromJust $ listSelectedElement is
-  in LevelContents fs f is i
+  let (i, _) = snd $ fromJust $ listSelectedElement is
+      x' = (i, False)
+      is' = listModify (const (i, True)) is
+      fs' = listModify (\(u, c) -> (u, c <&> \(gf, _) -> (gf, listElements is'))) fs
+      -- fs' = listModify (second $ (Just .) $ const $ listElements is') fs
+  in LevelContents fs' f is' x'
 stateDown s@(LevelContents _ _ _ _) = s
 
 stateUp :: MenuState -> MenuState
