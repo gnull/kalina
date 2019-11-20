@@ -80,6 +80,7 @@ parseOpts = execParser opts
      <> progDesc "Open TUI to fetch and display RSS feeds"
      <> header "news-view -- An RSS reader written in Haskell and inspired by newsboat" )
 
+-- Note: https://hackage.haskell.org/package/filemanip-0.3.6.3/docs/System-FilePath-Manip.html#v:modifyInPlace
 main :: IO ()
 main = do
   Options {..} <- parseOpts
