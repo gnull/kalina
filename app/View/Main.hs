@@ -64,6 +64,7 @@ options = Options
      <> help "A file with list of RSS feeds (compatible with newsboat)"
      <> metavar "FILE"
      <> value "~/.newsboat/urls"
+     <> action "file"
      <> showDefault )
   <*> strOption
       ( long "cache"
@@ -71,6 +72,7 @@ options = Options
      <> help "A file in which to store cached RSS entries and read/unread status"
      <> metavar "FILE"
      <> value "/tmp/news-cache"
+     <> action "file"
      <> showDefault )
 
 parseOpts :: IO Options
