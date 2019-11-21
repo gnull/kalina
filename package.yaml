@@ -35,11 +35,7 @@ library:
   - Menu
 
 executables:
-  news-fetch:
-    source-dirs:      app/Fetch/
-    main:             Main.hs
-    dependencies:     rss-test
   news-view:
-    source-dirs:      app/View/
+    source-dirs:      app/
     main:             Main.hs
     dependencies:     rss-test
