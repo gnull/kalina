@@ -100,19 +100,32 @@ drawMenu s =
         <+> vBorder
         <+> str " r - fetch selected feed "
         <+> vBorder
+        <+> str " R - fetch all feeds "
+        <+> vBorder
         <+> str " Enter - open an entry "
         <+> vBorder
         <+> str " h,j,k,l - navigation "]
     g x = vCenter $ f x
 
+fetchFeedHelper :: (String, Maybe CacheEntry) -> IO (String, Maybe CacheEntry)
+fetchFeedHelper (u, c) = do
+  (f, is) <- fetchFeed u
+  let c' = fromMaybe (newCacheEntry f is) $ fmap (updateCacheEntry f is) c
+  pure (u, Just c')
+
 handleMenu :: MenuState -> Event -> EventM () (Next MenuState)
 handleMenu s (EvKey (KChar 'r') _) =
   case s of
     LevelFeeds fs -> do
-      let (u, c) = snd $ fromJust $ listSelectedElement fs
-      (f, is) <- liftIO $ fetchFeed u
-      let c' = Just $ fromMaybe (newCacheEntry f is) $ fmap (updateCacheEntry f is) c
-      continue $ LevelFeeds $ listModify (const (u, c')) fs
+      let i = snd $ fromJust $ listSelectedElement fs
+      i' <- liftIO $ fetchFeedHelper i
+      continue $ LevelFeeds $ listModify (const i') fs
+    _ -> continue s
+handleMenu s (EvKey (KChar 'R') _) =
+  case s of
+    LevelFeeds fs -> do
+      fs' <- liftIO $ traverse fetchFeedHelper fs
+      continue $ LevelFeeds fs'
     _ -> continue s
 handleMenu s (EvKey (KChar 'q') _) =
   case s of
