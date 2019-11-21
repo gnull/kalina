@@ -20,8 +20,6 @@ import Brick.Widgets.Center
 import Brick.Widgets.Border
 import Graphics.Vty.Input.Events
 
-import Data.Text.Markup (fromText)
-
 instance Splittable [] where
   splitAt = Data.List.splitAt
 
@@ -38,6 +36,9 @@ data MenuState
 
 initialMenuState :: CacheFile -> MenuState
 initialMenuState = LevelFeeds . toGenericList
+
+selectedElement :: L x -> x
+selectedElement = snd . fromJust . listSelectedElement
 
 stateDown :: MenuState -> MenuState
 stateDown s@(LevelFeeds fs) =
@@ -107,32 +108,26 @@ drawMenu s =
         <+> str " h,j,k,l - navigation "]
     g x = vCenter $ f x
 
-fetchFeedHelper :: (String, Maybe CacheEntry) -> IO (String, Maybe CacheEntry)
-fetchFeedHelper (u, c) = do
-  (f, is) <- fetchFeed u
-  let c' = fromMaybe (newCacheEntry f is) $ fmap (updateCacheEntry f is) c
-  pure (u, Just c')
-
-handleMenu :: MenuState -> Event -> EventM () (Next MenuState)
-handleMenu s (EvKey (KChar 'r') _) =
+handleMenu :: (FilePath -> IO ()) -> MenuState -> Event -> EventM () (Next MenuState)
+handleMenu queue s (EvKey (KChar 'r') _) =
   case s of
     LevelFeeds fs -> do
-      let i = snd $ fromJust $ listSelectedElement fs
-      i' <- liftIO $ fetchFeedHelper i
-      continue $ LevelFeeds $ listModify (const i') fs
+      let (u, _) = snd $ fromJust $ listSelectedElement fs
+      liftIO $ queue u
+      continue s
     _ -> continue s
-handleMenu s (EvKey (KChar 'R') _) =
+handleMenu queue s (EvKey (KChar 'R') _) =
   case s of
     LevelFeeds fs -> do
-      fs' <- liftIO $ traverse fetchFeedHelper fs
-      continue $ LevelFeeds fs'
+      liftIO $ sequence_ $ fmap (queue . fst) fs
+      continue s
     _ -> continue s
-handleMenu s (EvKey (KChar 'q') _) =
+handleMenu _ s (EvKey (KChar 'q') _) =
   case s of
     LevelFeeds _ -> halt s
     _ -> continue $ stateUp s
-handleMenu s (EvKey KEnter _) = continue $ stateDown s
-handleMenu s e =
+handleMenu _ s (EvKey KEnter _) = continue $ stateDown s
+handleMenu _ s e =
   case s of
     LevelFeeds fs -> do
       fs' <- handleListEventVi handleListEvent e fs

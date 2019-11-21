@@ -22,8 +22,6 @@ import qualified Text.RSS1.Syntax as R1
 
 import Data.ByteString.Lazy.Char8 (unpack)
 
-import Network.Wreq
-import Control.Lens
 import Text.Feed.Import
 
 data GenericItem = GenericItem
@@ -151,11 +149,3 @@ updateCacheEntry f is (_, is') = (f, map (, False) new ++ is')
     new = filter (\i -> elemBy ((giTitle &&& giURL) . fst) (giTitle &&& giURL $ i) is') is
     elemBy :: Eq b => (a -> b) -> b -> [a] -> Bool
     elemBy g x l = elem x $ map g l
-
-----
-
-fetchFeed :: FilePath -> IO (GenericFeed, [GenericItem])
-fetchFeed u = do
-  x <- get u
-  let x' = fromJust $ parseFeedString $ unpack $ x ^. responseBody
-  pure $ (feedToGeneric x', itemsToGeneric x')
