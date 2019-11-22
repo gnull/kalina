@@ -3,6 +3,7 @@ module Concurrency where
 
 import Data.Maybe
 import Data.List (delete)
+import Control.Arrow ((&&&))
 
 import Control.Exception.Safe (catchAny)
 
@@ -19,11 +20,11 @@ import Text.Feed.Import
 import GenericFeed
 import Menu
 
-fetchFeed :: FilePath -> IO (GenericFeed, [GenericItem])
+fetchFeed :: FilePath -> IO (Maybe (GenericFeed, [GenericItem]))
 fetchFeed u = do
   x <- get u
-  let x' = fromJust $ parseFeedString $ unpack $ x ^. responseBody -- TODO: Proper error handling here
-  pure $ (feedToGeneric x', itemsToGeneric x')
+  let x' = parseFeedString $ unpack $ x ^. responseBody -- TODO: Proper error handling here
+  pure $ (feedToGeneric &&& itemsToGeneric) <$> x'
 
 -- TODO: Add a String to Failed constructor for error message
 data WorkerEvent
@@ -37,7 +38,7 @@ workerThread :: BChan FilePath -> BChan WorkerEvent -> IO ()
 workerThread from to = sequence_ $ repeat $ do
   u <- readBChan from
   writeBChan to $ Started u
-  r <- catchAny (Finished u <$> fetchFeed u) $ \e -> pure (Failed u)
+  r <- catchAny (maybe (Failed u) (Finished u) <$> fetchFeed u) $ \e -> pure (Failed u)
   writeBChan to r
 
 patch :: (GenericFeed, [GenericItem]) -> Maybe CacheEntry -> Maybe CacheEntry
