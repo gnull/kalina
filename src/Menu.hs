@@ -31,8 +31,8 @@ toGenericList x = list () x 1
 
 data MenuState
   = LevelFeeds    (L (String, Maybe CacheEntry))
-  | LevelItems    (L (String, Maybe CacheEntry)) (String, Maybe CacheEntry) (L (GenericItem, ItemStatus))
-  | LevelContents (L (String, Maybe CacheEntry)) (String, Maybe CacheEntry) (L (GenericItem, ItemStatus)) (GenericItem, ItemStatus)
+  | LevelItems    (L (String, Maybe CacheEntry)) (L (GenericItem, ItemStatus))
+  | LevelContents (L (String, Maybe CacheEntry)) (L (GenericItem, ItemStatus))
 
 initialMenuState :: CacheFile -> MenuState
 initialMenuState = LevelFeeds . toGenericList
@@ -45,20 +45,20 @@ stateDown s@(LevelFeeds fs) =
   let f = selectedElement fs
   in case snd f of
     Nothing -> s
-    Just (_, is) -> LevelItems fs f $ toGenericList is
-stateDown (LevelItems fs f is) =
+    Just (_, is) -> LevelItems fs $ toGenericList is
+stateDown (LevelItems fs is) =
   let (i, _) = selectedElement is
       x' = (i, False)
       is' = listModify (const (i, True)) is
       fs' = listModify (\(u, c) -> (u, c <&> \(gf, _) -> (gf, listElements is'))) fs
       -- fs' = listModify (second $ (Just .) $ const $ listElements is') fs
-  in LevelContents fs' f is' x'
-stateDown s@(LevelContents _ _ _ _) = s
+  in LevelContents fs' is'
+stateDown s@(LevelContents _ _) = s
 
 stateUp :: MenuState -> MenuState
 stateUp s@(LevelFeeds _) = s
-stateUp (LevelItems fs _ _) = LevelFeeds fs
-stateUp (LevelContents fs f is _) = LevelItems fs f is
+stateUp (LevelItems fs _) = LevelFeeds fs
+stateUp (LevelContents fs is) = LevelItems fs is
 
 renderContents :: GenericItem -> Widget ()
 renderContents (GenericItem {..}) =
@@ -90,8 +90,8 @@ drawMenu :: MenuState -> Widget ()
 drawMenu s =
     case s of
       LevelFeeds fs -> g $ renderList renderCache True fs
-      LevelItems _ _ is -> g $ renderList renderItem True is
-      LevelContents _ _ _ (c, _) -> f $ padBottom Max $ renderContents c
+      LevelItems _ is -> g $ renderList renderItem True is
+      LevelContents _ is -> f $ padBottom Max $ renderContents (fst $ selectedElement is)
   where
     f x = vBox
       [x
@@ -132,7 +132,7 @@ handleMenu _ s e =
     LevelFeeds fs -> do
       fs' <- handleListEventVi handleListEvent e fs
       continue $ LevelFeeds fs'
-    LevelItems fs f is -> do
+    LevelItems fs is -> do
       is' <- handleListEventVi handleListEvent e is
-      continue $ LevelItems fs f is'
-    LevelContents _ _ _ _ -> continue s
+      continue $ LevelItems fs is'
+    LevelContents _ _ -> continue s

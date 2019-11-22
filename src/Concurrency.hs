@@ -52,14 +52,14 @@ patchList fs (u, f) = fs <&> \(u', f') -> if u == u' then (u, patch f f') else (
 handleThreadEvent :: MenuState -> WorkerEvent -> EventM () (Next MenuState)
 handleThreadEvent s (Finished u f) = case s of
   LevelFeeds fs -> continue $ LevelFeeds $ patchList fs (u, f)
-  LevelItems fs _ _ -> let
+  LevelItems fs _ -> let
         fs' = patchList fs (u, f)
         x' = selectedElement fs'
         is' = fromJust $ snd x'
-      in continue $ LevelItems fs' x' $ toGenericList $ snd is'
-  LevelContents fs _ _ c -> let
+      in continue $ LevelItems fs' $ toGenericList $ snd is'
+  LevelContents fs is -> let
         fs' = patchList fs (u, f)
         x' = selectedElement fs'
         is' = fromJust $ snd x'
-      in continue $ LevelContents fs' x' (toGenericList $ snd is') c
+      in continue $ LevelContents fs' (toGenericList $ snd is')
 handleThreadEvent s _ = continue s

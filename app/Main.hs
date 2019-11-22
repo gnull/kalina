@@ -30,8 +30,8 @@ cacheFromState (State m) = listElements s
   where
     s = case m of
       LevelFeeds x -> x
-      LevelItems x _ _ -> x
-      LevelContents x _ _ _ -> x
+      LevelItems x _ -> x
+      LevelContents x _ -> x
 
 initialState :: CacheFile -> State
 initialState = State . initialMenuState
