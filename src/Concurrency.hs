@@ -49,7 +49,6 @@ patch (f, is) (Just (f', is')) = Just (f, goodIs ++ is')
 patchList :: L (String, Maybe CacheEntry) -> (String, (GenericFeed, [GenericItem])) -> L (String, Maybe CacheEntry)
 patchList fs (u, f) = fs <&> \(u', f') -> if u == u' then (u, patch f f') else (u', f')
 
--- TODO: rewrite this function to handle different menu states properly
 handleThreadEvent :: MenuState -> WorkerEvent -> EventM () (Next MenuState)
 handleThreadEvent s (Finished u f) = case s of
   LevelFeeds fs -> continue $ LevelFeeds $ patchList fs (u, f)
