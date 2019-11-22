@@ -42,12 +42,12 @@ selectedElement = snd . fromJust . listSelectedElement
 
 stateDown :: MenuState -> MenuState
 stateDown s@(LevelFeeds fs) =
-  let f = snd $ fromJust $ listSelectedElement fs
+  let f = selectedElement fs
   in case snd f of
     Nothing -> s
     Just (_, is) -> LevelItems fs f $ toGenericList is
 stateDown (LevelItems fs f is) =
-  let (i, _) = snd $ fromJust $ listSelectedElement is
+  let (i, _) = selectedElement is
       x' = (i, False)
       is' = listModify (const (i, True)) is
       fs' = listModify (\(u, c) -> (u, c <&> \(gf, _) -> (gf, listElements is'))) fs
@@ -112,7 +112,7 @@ handleMenu :: (FilePath -> IO ()) -> MenuState -> Event -> EventM () (Next MenuS
 handleMenu queue s (EvKey (KChar 'r') _) =
   case s of
     LevelFeeds fs -> do
-      let (u, _) = snd $ fromJust $ listSelectedElement fs
+      let (u, _) = selectedElement fs
       liftIO $ queue u
       continue s
     _ -> continue s
