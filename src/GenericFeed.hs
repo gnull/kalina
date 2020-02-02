@@ -46,7 +46,7 @@ entryContentToText _ = T.pack "*HTML gibbreish*"
 
 atomItemToGeneric :: A.Entry -> GenericItem
 atomItemToGeneric e = GenericItem
-  { giTitle = Just $ T.pack $ A.txtToString $ A.entryTitle e
+  { giTitle = Just $ textContentToText $ A.entryTitle e
   , giURL = Just $ A.entryId e
   , giDate = Just $ A.entryUpdated e
   , giAuthor = Just $ T.pack $ show $ A.entryAuthors e
