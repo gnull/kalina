@@ -80,7 +80,7 @@ renderItem _ (GenericItem {..}, r) = padRight Max $ markup
    <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle)
 
 renderFeed :: Bool -> GenericFeed -> Widget ()
-renderFeed _ (GenericFeed {..}) = padRight Max $ txt $ T.pack gfTitle <> " (" <> gfURL <> ")"
+renderFeed _ (GenericFeed {..}) = padRight Max $ txt $ gfTitle <> " (" <> gfURL <> ")"
 
 renderCache :: Bool -> (String, Maybe CacheEntry) -> Widget ()
 renderCache b (_, Just (f, _)) = renderFeed b f

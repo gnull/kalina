@@ -35,7 +35,7 @@ data GenericItem = GenericItem
   } deriving (Show, Read, Eq)
 
 data GenericFeed = GenericFeed
-  { gfTitle :: String
+  { gfTitle :: Text
   , gfURL :: Text
   } deriving (Show, Read)
 
@@ -77,20 +77,22 @@ itemsToGeneric (RSSFeed (R.RSS {R.rssChannel = R.RSSChannel {R.rssItems = r}}) )
 itemsToGeneric (RSS1Feed (R1.Feed {R1.feedItems = i})) = map rss1ItemToGeneric i
 itemsToGeneric (XMLFeed _ ) = error "Unrecognized feed format"
 
-trim :: String -> String
-trim = dropWhileEnd isSpace . dropWhile isSpace
+textContentToText :: A.TextContent -> Text
+textContentToText (A.TextString x) = x
+textContentToText (A.HTMLString x) = x
+textContentToText _ = error "Unexpected content format"
 
 feedToGeneric :: Feed -> GenericFeed
 feedToGeneric (AtomFeed f) = GenericFeed
-  { gfTitle = trim $ A.txtToString $ A.feedTitle f
+  { gfTitle = T.strip $ textContentToText $ A.feedTitle f
   , gfURL = A.feedId f
   }
 feedToGeneric (RSSFeed (R.RSS {R.rssChannel = r})) = GenericFeed
-  { gfTitle = trim $ T.unpack $ R.rssTitle r
+  { gfTitle = T.strip $ R.rssTitle r
   , gfURL = R.rssLink r
   }
 feedToGeneric (RSS1Feed (R1.Feed {R1.feedChannel = c})) = GenericFeed
-  { gfTitle = trim $ T.unpack $ R1.channelTitle c
+  { gfTitle = T.strip $ R1.channelTitle c
   , gfURL = R1.channelURI c
   }
 feedToGeneric (XMLFeed _) = error "Unrecognized feed format"
@@ -117,7 +119,7 @@ printGenericItems :: [GenericItem] -> IO ()
 printGenericItems = sequence_ . intersperse (putStrLn "---") . map printGenericItem
 
 showGenericFeed :: GenericFeed -> IO ()
-showGenericFeed (GenericFeed {..}) = T.putStrLn $ T.pack gfTitle <> " (" <> gfURL <> ")"
+showGenericFeed (GenericFeed {..}) = T.putStrLn $ gfTitle <> " (" <> gfURL <> ")"
 
 type ItemStatus = Bool
 type CacheEntry = (GenericFeed, [(GenericItem, ItemStatus)])

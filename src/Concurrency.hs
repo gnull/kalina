@@ -23,7 +23,7 @@ import Menu
 fetchFeed :: FilePath -> IO (Maybe (GenericFeed, [GenericItem]))
 fetchFeed u = do
   x <- get u
-  let x' = parseFeedString $ unpack $ x ^. responseBody -- TODO: Proper error handling here
+  let x' = parseFeedSource $ x ^. responseBody -- TODO: Proper error handling here
   pure $ (feedToGeneric &&& itemsToGeneric) <$> x'
 
 -- TODO: Add a String to Failed constructor for error message
