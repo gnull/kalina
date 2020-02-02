@@ -44,27 +44,30 @@ entryContentToText (A.TextContent x) = x
 entryContentToText (A.ExternalContent _ x) = x
 entryContentToText _ = T.pack "*HTML gibbreish*"
 
+removeBadCharacters :: Text -> Text
+removeBadCharacters = T.unwords . T.words
+
 atomItemToGeneric :: A.Entry -> GenericItem
 atomItemToGeneric e = GenericItem
-  { giTitle = Just $ textContentToText $ A.entryTitle e
+  { giTitle = Just $ removeBadCharacters $ textContentToText $ A.entryTitle e
   , giURL = Just $ A.entryId e
-  , giDate = Just $ A.entryUpdated e
-  , giAuthor = Just $ T.pack $ show $ A.entryAuthors e
+  , giDate = Just $ removeBadCharacters $ A.entryUpdated e
+  , giAuthor = Just $ removeBadCharacters $ T.pack $ show $ A.entryAuthors e
   , giBody = entryContentToText <$> A.entryContent e
   }
 
 rssItemToGeneric :: R.RSSItem -> GenericItem
 rssItemToGeneric e = GenericItem
-  { giTitle = R.rssItemTitle e
+  { giTitle = removeBadCharacters <$> R.rssItemTitle e
   , giURL = R.rssItemLink e
-  , giDate = R.rssItemPubDate e
-  , giAuthor = R.rssItemAuthor e
+  , giDate = removeBadCharacters <$> R.rssItemPubDate e
+  , giAuthor = removeBadCharacters <$> R.rssItemAuthor e
   , giBody = R.rssItemDescription e
   }
 
 rss1ItemToGeneric :: R1.Item -> GenericItem
 rss1ItemToGeneric (R1.Item {..}) = GenericItem
-  { giTitle = Just itemTitle
+  { giTitle = Just $ removeBadCharacters itemTitle
   , giURL = Just itemURI
   , giDate = Nothing
   , giAuthor = Nothing
@@ -84,15 +87,15 @@ textContentToText _ = error "Unexpected content format"
 
 feedToGeneric :: Feed -> GenericFeed
 feedToGeneric (AtomFeed f) = GenericFeed
-  { gfTitle = T.strip $ textContentToText $ A.feedTitle f
+  { gfTitle = removeBadCharacters $ textContentToText $ A.feedTitle f
   , gfURL = A.feedId f
   }
 feedToGeneric (RSSFeed (R.RSS {R.rssChannel = r})) = GenericFeed
-  { gfTitle = T.strip $ R.rssTitle r
+  { gfTitle = removeBadCharacters $ R.rssTitle r
   , gfURL = R.rssLink r
   }
 feedToGeneric (RSS1Feed (R1.Feed {R1.feedChannel = c})) = GenericFeed
-  { gfTitle = T.strip $ R1.channelTitle c
+  { gfTitle = removeBadCharacters $ R1.channelTitle c
   , gfURL = R1.channelURI c
   }
 feedToGeneric (XMLFeed _) = error "Unrecognized feed format"
