@@ -8,6 +8,7 @@ module GenericFeed where
 import Control.Exception (try)
 import Data.Maybe
 import Data.List
+import Data.Char (isSpace)
 import Control.Arrow ((&&&))
 import Control.Monad (join, (>=>))
 
@@ -76,17 +77,20 @@ itemsToGeneric (RSSFeed (R.RSS {R.rssChannel = R.RSSChannel {R.rssItems = r}}) )
 itemsToGeneric (RSS1Feed (R1.Feed {R1.feedItems = i})) = map rss1ItemToGeneric i
 itemsToGeneric (XMLFeed _ ) = error "Unrecognized feed format"
 
+trim :: String -> String
+trim = dropWhileEnd isSpace . dropWhile isSpace
+
 feedToGeneric :: Feed -> GenericFeed
 feedToGeneric (AtomFeed f) = GenericFeed
-  { gfTitle = A.txtToString $ A.feedTitle f
+  { gfTitle = trim $ A.txtToString $ A.feedTitle f
   , gfURL = A.feedId f
   }
 feedToGeneric (RSSFeed (R.RSS {R.rssChannel = r})) = GenericFeed
-  { gfTitle = T.unpack $ R.rssTitle r
+  { gfTitle = trim $ T.unpack $ R.rssTitle r
   , gfURL = R.rssLink r
   }
 feedToGeneric (RSS1Feed (R1.Feed {R1.feedChannel = c})) = GenericFeed
-  { gfTitle = T.unpack $ R1.channelTitle c
+  { gfTitle = trim $ T.unpack $ R1.channelTitle c
   , gfURL = R1.channelURI c
   }
 feedToGeneric (XMLFeed _) = error "Unrecognized feed format"
