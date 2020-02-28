@@ -34,8 +34,25 @@ data MenuState
   | LevelItems    (L (String, Maybe CacheEntry)) (L (GenericItem, ItemStatus))
   | LevelContents (L (String, Maybe CacheEntry)) (L (GenericItem, ItemStatus))
 
+data State = State { innerState :: CacheFile, menuState :: MenuState }
+
 initialMenuState :: CacheFile -> MenuState
 initialMenuState = LevelFeeds . toGenericList
+
+patchGenList :: (a -> a -> Bool) -> [a] -> L a -> L a
+patchGenList eq l' l = listReplace l' (Just pos) l
+  where
+    sel = selectedElement l
+    pos = fromJust $ findIndex (eq sel) l'
+
+fstEqual :: Eq a => (a, b) -> (a, b) -> Bool
+fstEqual (x, _) (y, _) = x == y
+
+updateMenuState :: CacheFile -> MenuState -> MenuState
+updateMenuState c (LevelFeeds fs) = LevelFeeds $ patchGenList fstEqual c fs
+updateMenuState c (LevelItems fs is) = LevelItems f (patchGenList fstEqual (snd $ fromJust $ snd $ selectedElement f) is)
+  where f = (patchGenList fstEqual c fs)
+updateMenuState c (LevelContents fs is) = undefined
 
 selectedElement :: L x -> x
 selectedElement = snd . fromJust . listSelectedElement

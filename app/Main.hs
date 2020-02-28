@@ -23,25 +23,21 @@ import Menu
 import Concurrency (workerThread, WorkerEvent, handleThreadEvent)
 import Control.Concurrent.Async (async, cancel)
 
-data State = State MenuState
-
 cacheFromState :: State -> CacheFile
-cacheFromState (State m) = listElements s
-  where
-    s = case m of
-      LevelFeeds x -> x
-      LevelItems x _ -> x
-      LevelContents x _ -> x
+cacheFromState = innerState
 
 initialState :: CacheFile -> State
-initialState = State . initialMenuState
+initialState c = State c $ initialMenuState c
 
 draw :: State -> [Widget ()]
-draw (State s) = [drawMenu s]
+draw (State _ s) = [drawMenu s]
 
 handle :: (FilePath -> IO ()) -> State -> BrickEvent () WorkerEvent -> EventM () (Next State)
-handle queue (State s) (VtyEvent e) = fmap State <$> handleMenu queue s e
-handle _ (State s) (AppEvent e) = fmap State <$> handleThreadEvent s e
+handle queue (State c s) (VtyEvent e) = fmap (State c) <$> handleMenu queue s e
+handle _ (State c s) (AppEvent e) = continue $ State c' s'
+  where
+    c' = handleThreadEvent c e
+    s' = updateMenuState c' s
 handle _ s _ = continue s
 
 theMap :: AttrMap

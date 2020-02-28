@@ -49,17 +49,7 @@ patch (f, is) (Just (f', is')) = Just (f, goodIs ++ is')
 patchList :: L (String, Maybe CacheEntry) -> (String, (GenericFeed, [GenericItem])) -> L (String, Maybe CacheEntry)
 patchList fs (u, f) = fs <&> \(u', f') -> if u == u' then (u, patch f f') else (u', f')
 
-handleThreadEvent :: MenuState -> WorkerEvent -> EventM () (Next MenuState)
-handleThreadEvent s (Finished u f) = case s of
-  LevelFeeds fs -> continue $ LevelFeeds $ patchList fs (u, f)
-  LevelItems fs _ -> let
-        fs' = patchList fs (u, f)
-        x' = selectedElement fs'
-        is' = fromJust $ snd x'
-      in continue $ LevelItems fs' $ toGenericList $ snd is'
-  LevelContents fs is -> let
-        fs' = patchList fs (u, f)
-        x' = selectedElement fs'
-        is' = fromJust $ snd x'
-      in continue $ LevelContents fs' (toGenericList $ snd is')
-handleThreadEvent s _ = continue s
+handleThreadEvent :: CacheFile -> WorkerEvent -> CacheFile
+handleThreadEvent s (Finished u f) = map g s
+  where g (u', f') = (u', if u' == u then patch f f' else f')
+handleThreadEvent s _ = s -- this is ignored for now, but in future i'll use it for progress bar
