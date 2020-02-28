@@ -33,7 +33,7 @@ draw :: State -> [Widget ()]
 draw (State _ s) = [drawMenu s]
 
 handle :: (FilePath -> IO ()) -> State -> BrickEvent () WorkerEvent -> EventM () (Next State)
-handle queue (State c s) (VtyEvent e) = fmap (State c) <$> handleMenu queue s e
+handle queue s (VtyEvent e) = handleMenu queue s e
 handle _ (State c s) (AppEvent e) = continue $ State c' s'
   where
     c' = handleThreadEvent c e

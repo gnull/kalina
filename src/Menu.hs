@@ -125,31 +125,32 @@ drawMenu s =
         <+> str " h,j,k,l - navigation "]
     g x = vCenter $ f x
 
-handleMenu :: (FilePath -> IO ()) -> MenuState -> Event -> EventM () (Next MenuState)
-handleMenu queue s (EvKey (KChar 'r') _) =
-  case s of
-    LevelFeeds fs -> do
+handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
+handleMenu queue st@(State c s) (EvKey (KChar 'r') _) = continue =<< fmap (\x -> st {menuState = x}) x
+  where
+    x = do
       let (u, _) = selectedElement fs
       liftIO $ queue u
-      continue s
-    _ -> continue s
-handleMenu queue s (EvKey (KChar 'R') _) =
+      pure s
+    fs = case s of
+      LevelFeeds fs -> fs
+      LevelItems fs _ -> fs
+      LevelContents fs _ -> fs
+handleMenu queue st@(State c _) (EvKey (KChar 'R') _) = do
+  liftIO $ sequence_ $ fmap (queue . fst) c
+  continue st
+handleMenu _ st@(State _ s) (EvKey (KChar 'q') _) =
   case s of
-    LevelFeeds fs -> do
-      liftIO $ sequence_ $ fmap (queue . fst) fs
-      continue s
-    _ -> continue s
-handleMenu _ s (EvKey (KChar 'q') _) =
-  case s of
-    LevelFeeds _ -> halt s
-    _ -> continue $ stateUp s
-handleMenu _ s (EvKey KEnter _) = continue $ stateDown s
-handleMenu _ s e =
-  case s of
-    LevelFeeds fs -> do
-      fs' <- handleListEventVi handleListEvent e fs
-      continue $ LevelFeeds fs'
-    LevelItems fs is -> do
-      is' <- handleListEventVi handleListEvent e is
-      continue $ LevelItems fs is'
-    LevelContents _ _ -> continue s
+    LevelFeeds _ -> halt st
+    _ -> continue $ st {menuState = stateUp s}
+handleMenu _ st@(State _ s) (EvKey KEnter _) = continue $ st {menuState = stateDown s}
+handleMenu _ st@(State _ s) e = continue =<< fmap (\x -> st {menuState = x}) x
+  where
+    x = case s of
+      LevelFeeds fs -> do
+        fs' <- handleListEventVi handleListEvent e fs
+        pure $ LevelFeeds fs'
+      LevelItems fs is -> do
+        is' <- handleListEventVi handleListEvent e is
+        pure $ LevelItems fs is'
+      LevelContents _ _ -> pure s
