@@ -113,17 +113,24 @@ renderItem _ (GenericItem {..}, r) = padRight Max $ markup
    <> "  "
    <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle)
 
-renderFeed :: Bool -> GenericFeed -> Widget ()
-renderFeed _ (GenericFeed {..}) = padRight Max $ txt $ gfTitle <> " (" <> gfURL <> ")"
-
-renderCache :: Bool -> (String, Maybe CacheEntry) -> Widget ()
-renderCache b (_, Just (f, _)) = renderFeed b f
-renderCache _ (s, Nothing) = padRight Max $ txt $ T.pack s <> " *Not Fetched*"
+renderFeed :: Bool -> (String, Maybe CacheEntry) -> Widget ()
+renderFeed _ f = (txt " × ")
+              <+> (hLimit 6 $ padRight Max $ markup $ unreadCount @? readStatus)
+              <+> vLimit 1 vBorder
+              <+> (padRight Max $ markup $ (" " <> caption) @? readStatus)
+  where
+    (unread, total, caption) = case f of
+      (_, Just (gf, is)) -> ( length $ filter (not . snd) is
+                            , length is
+                            , gfTitle gf <> " (" <> gfURL gf <> ")")
+      (u, Nothing) -> (0, 0, T.pack u)
+    readStatus = if unread == 0 then "read-item" else "unread-item"
+    unreadCount = T.pack $ show unread <> "/" <> show total
 
 drawMenu :: MenuState -> Widget ()
 drawMenu s =
     case s of
-      LevelFeeds fs -> g $ renderList renderCache True fs
+      LevelFeeds fs -> g $ renderList renderFeed True fs
       LevelItems _ is -> g $ renderList renderItem True is
       LevelContents _ is -> f $ padBottom Max $ renderContents (fst $ selectedElement is)
   where
