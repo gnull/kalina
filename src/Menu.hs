@@ -52,7 +52,8 @@ updateMenuState :: CacheFile -> MenuState -> MenuState
 updateMenuState c (LevelFeeds fs) = LevelFeeds $ patchGenList fstEqual c fs
 updateMenuState c (LevelItems fs is) = LevelItems f (patchGenList fstEqual (snd $ fromJust $ snd $ selectedElement f) is)
   where f = (patchGenList fstEqual c fs)
-updateMenuState c (LevelContents fs is) = undefined
+updateMenuState c (LevelContents fs is) = LevelContents f (patchGenList fstEqual (snd $ fromJust $ snd $ selectedElement f) is)
+  where f = (patchGenList fstEqual c fs)
 
 selectedElement :: L x -> x
 selectedElement = snd . fromJust . listSelectedElement
