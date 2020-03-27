@@ -36,6 +36,7 @@ library:
   - GenericFeed
   - Menu
   - Concurrency
+  - Interface
 
 executables:
   news-view:

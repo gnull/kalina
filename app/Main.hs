@@ -19,6 +19,7 @@ import qualified Graphics.Vty as V
 import Options.Applicative hiding (str)
 
 import Menu
+import Interface
 
 import Concurrency (workerThread, WorkerEvent, handleThreadEvent)
 import Control.Concurrent.Async (async, cancel)
