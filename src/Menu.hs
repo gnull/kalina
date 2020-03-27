@@ -73,6 +73,11 @@ updateMenuState c ms = over isListL (patchGenList fstEqual (snd $ fromJust $ snd
 selectedElement :: L x -> x
 selectedElement = snd . fromJust . listSelectedElement
 
+selectedElementL :: Lens' (L x) x
+selectedElementL f l = (\y -> listModify (const y) l) <$> f x
+  where
+    x = selectedElement l
+
 -- TODO: Make these two functions work with State instead of MenuState
 
 stateDown :: MenuState -> MenuState
