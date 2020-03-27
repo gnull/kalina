@@ -25,7 +25,7 @@ import Concurrency (workerThread, WorkerEvent, handleThreadEvent)
 import Control.Concurrent.Async (async, cancel)
 
 cacheFromState :: State -> CacheFile
-cacheFromState = innerState
+cacheFromState = _innerState
 
 draw :: State -> [Widget ()]
 draw (State _ s) = [drawMenu s]

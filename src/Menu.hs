@@ -1,10 +1,10 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Menu where
 
 import Data.Maybe
 import Data.List
 import Data.Text () -- Instances
-
-import Data.Functor ((<&>))
 
 import Control.Lens
 
@@ -26,31 +26,32 @@ data MenuState
   | LevelItems    (L (String, Maybe CacheEntry)) (L (GenericItem, ItemStatus))
   | LevelContents (L (String, Maybe CacheEntry)) (L (GenericItem, ItemStatus))
 
-data State = State { innerState :: CacheFile, menuState :: MenuState }
-
-initialState :: CacheFile -> State
-initialState c = State { innerState = c
-                       , menuState = LevelFeeds $ toGenericList c
-                       }
-
--- This allows to read or modify the `fs' field of MenuState.
-fsListL :: Lens' MenuState (L (String, Maybe CacheEntry))
-fsListL f (LevelFeeds fs) = LevelFeeds <$> f fs
-fsListL f (LevelItems fs is) = (\x -> LevelItems x is) <$> f fs
-fsListL f (LevelContents fs is) = (\x -> LevelContents x is) <$> f fs
+feedListMenu :: Lens' MenuState (L (String, Maybe CacheEntry))
+feedListMenu f (LevelFeeds fs) = LevelFeeds <$> f fs
+feedListMenu f (LevelItems fs is) = (\x -> LevelItems x is) <$> f fs
+feedListMenu f (LevelContents fs is) = (\x -> LevelContents x is) <$> f fs
 
 -- This allows to modify the `is' field of MenuState. If the field is not
 -- present, nothing happens. But it doesn't allow reading the field, since it
 -- may not be present.
-isListL :: Traversal' MenuState (L (GenericItem, ItemStatus))
-isListL _ s@(LevelFeeds _) = pure s
-isListL f (LevelItems fs is) = LevelItems fs <$> f is
-isListL f (LevelContents fs is) = LevelContents fs <$> f is
+itemsListMenu :: Traversal' MenuState (L (GenericItem, ItemStatus))
+itemsListMenu _ s@(LevelFeeds _) = pure s
+itemsListMenu f (LevelItems fs is) = LevelItems fs <$> f is
+itemsListMenu f (LevelContents fs is) = LevelContents fs <$> f is
+
+data State = State { _innerState :: CacheFile, _menuState :: MenuState }
+
+makeLenses ''State
+
+initialState :: CacheFile -> State
+initialState c = State { _innerState = c
+                       , _menuState = LevelFeeds $ toGenericList c
+                       }
 
 updateMenuState :: CacheFile -> MenuState -> MenuState
-updateMenuState c ms = over isListL (patchGenList fstEqual (snd $ fromJust $ snd $ selectedElement $ ms' ^. fsListL)) ms'
+updateMenuState c ms = over itemsListMenu (patchGenList fstEqual (snd $ fromJust $ snd $ selectedElement $ ms' ^. feedListMenu)) ms'
   where
-    ms' = over fsListL (patchGenList fstEqual c) ms
+    ms' = over feedListMenu (patchGenList fstEqual c) ms
     -- These two are utility functions
     patchGenList :: (a -> a -> Bool) -> [a] -> L a -> L a
     patchGenList eq l' l = listReplace l' (Just pos) l
@@ -76,12 +77,7 @@ stateDown s@(LevelFeeds fs) =
   in case snd f of
     Nothing -> s
     Just (_, is) -> LevelItems fs $ toGenericList is
-stateDown (LevelItems fs is) =
-  let (i, _) = selectedElement is
-      is' = listModify (const (i, True)) is
-      fs' = listModify (\(u, c) -> (u, c <&> \(gf, _) -> (gf, listElements is'))) fs
-      -- fs' = listModify (second $ (Just .) $ const $ listElements is') fs
-  in LevelContents fs' is'
+stateDown (LevelItems fs is) = LevelContents fs is
 stateDown s@(LevelContents _ _) = s
 
 stateUp :: MenuState -> MenuState

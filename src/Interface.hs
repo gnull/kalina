@@ -75,7 +75,7 @@ drawMenu s =
     g x = vCenter $ f x
 
 handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
-handleMenu queue st@(State _ s) (EvKey (KChar 'r') _) = continue =<< fmap (\y -> st {menuState = y}) x
+handleMenu queue st@(State _ s) (EvKey (KChar 'r') _) = continue =<< fmap (\y -> st {_menuState = y}) x
   where
     x = do
       let (u, _) = selectedElement fs
@@ -91,9 +91,9 @@ handleMenu queue st@(State c _) (EvKey (KChar 'R') _) = do
 handleMenu _ st@(State _ s) (EvKey (KChar 'q') _) =
   case s of
     LevelFeeds _ -> halt st
-    _ -> continue $ st {menuState = stateUp s}
-handleMenu _ st@(State _ s) (EvKey KEnter _) = continue $ st {menuState = stateDown s}
-handleMenu _ st@(State _ s) e = continue =<< fmap (\y -> st {menuState = y}) x
+    _ -> continue $ st {_menuState = stateUp s}
+handleMenu _ st@(State _ s) (EvKey KEnter _) = continue $ st {_menuState = stateDown s}
+handleMenu _ st@(State _ s) e = continue =<< fmap (\y -> st {_menuState = y}) x
   where
     x = case s of
       LevelFeeds fs -> do
