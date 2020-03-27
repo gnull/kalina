@@ -26,9 +26,6 @@ import Control.Concurrent.Async (async, cancel)
 cacheFromState :: State -> CacheFile
 cacheFromState = innerState
 
-initialState :: CacheFile -> State
-initialState c = State c $ initialMenuState c
-
 draw :: State -> [Widget ()]
 draw (State _ s) = [drawMenu s]
 

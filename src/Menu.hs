@@ -26,7 +26,7 @@ instance Splittable [] where
 type MyList n e = GenericList n [] e
 type L e = MyList () e
 
-toGenericList :: [a] -> MyList () a
+toGenericList :: [a] -> L a
 toGenericList x = list () x 1
 
 data MenuState
@@ -36,8 +36,10 @@ data MenuState
 
 data State = State { innerState :: CacheFile, menuState :: MenuState }
 
-initialMenuState :: CacheFile -> MenuState
-initialMenuState = LevelFeeds . toGenericList
+initialState :: CacheFile -> State
+initialState c = State { innerState = c
+                       , menuState = LevelFeeds $ toGenericList c
+                       }
 
 patchGenList :: (a -> a -> Bool) -> [a] -> L a -> L a
 patchGenList eq l' l = listReplace l' (Just pos) l
