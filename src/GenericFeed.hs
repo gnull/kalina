@@ -8,7 +8,6 @@ module GenericFeed where
 import Control.Exception (try)
 import Data.Maybe
 import Data.List
-import Data.Char (isSpace)
 import Control.Arrow ((&&&))
 import Control.Monad (join, (>=>))
 
@@ -20,10 +19,6 @@ import Text.Feed.Types
 import qualified Text.Atom.Feed as A
 import qualified Text.RSS.Syntax as R
 import qualified Text.RSS1.Syntax as R1
-
-import Data.ByteString.Lazy.Char8 (unpack)
-
-import Text.Feed.Import
 
 data GenericItem = GenericItem
   { giTitle :: Maybe Text -- Title displayed in list

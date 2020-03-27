@@ -57,6 +57,8 @@ updateMenuState c (LevelContents fs is) = undefined
 selectedElement :: L x -> x
 selectedElement = snd . fromJust . listSelectedElement
 
+-- TODO: Make these two functions work with State instead of MenuState
+
 stateDown :: MenuState -> MenuState
 stateDown s@(LevelFeeds fs) =
   let f = selectedElement fs
@@ -65,7 +67,6 @@ stateDown s@(LevelFeeds fs) =
     Just (_, is) -> LevelItems fs $ toGenericList is
 stateDown (LevelItems fs is) =
   let (i, _) = selectedElement is
-      x' = (i, False)
       is' = listModify (const (i, True)) is
       fs' = listModify (\(u, c) -> (u, c <&> \(gf, _) -> (gf, listElements is'))) fs
       -- fs' = listModify (second $ (Just .) $ const $ listElements is') fs
@@ -126,16 +127,16 @@ drawMenu s =
     g x = vCenter $ f x
 
 handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
-handleMenu queue st@(State c s) (EvKey (KChar 'r') _) = continue =<< fmap (\x -> st {menuState = x}) x
+handleMenu queue st@(State _ s) (EvKey (KChar 'r') _) = continue =<< fmap (\y -> st {menuState = y}) x
   where
     x = do
       let (u, _) = selectedElement fs
       liftIO $ queue u
       pure s
     fs = case s of
-      LevelFeeds fs -> fs
-      LevelItems fs _ -> fs
-      LevelContents fs _ -> fs
+      LevelFeeds fs' -> fs'
+      LevelItems fs' _ -> fs'
+      LevelContents fs' _ -> fs'
 handleMenu queue st@(State c _) (EvKey (KChar 'R') _) = do
   liftIO $ sequence_ $ fmap (queue . fst) c
   continue st
@@ -144,7 +145,7 @@ handleMenu _ st@(State _ s) (EvKey (KChar 'q') _) =
     LevelFeeds _ -> halt st
     _ -> continue $ st {menuState = stateUp s}
 handleMenu _ st@(State _ s) (EvKey KEnter _) = continue $ st {menuState = stateDown s}
-handleMenu _ st@(State _ s) e = continue =<< fmap (\x -> st {menuState = x}) x
+handleMenu _ st@(State _ s) e = continue =<< fmap (\y -> st {menuState = y}) x
   where
     x = case s of
       LevelFeeds fs -> do
