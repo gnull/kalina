@@ -78,25 +78,21 @@ drawMenu s =
     g x = vCenter $ f x
 
 handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
-handleMenu queue st@(State _ s) (EvKey (KChar 'r') _) = continue =<< fmap (\y -> st {_menuState = y}) x
+handleMenu queue st@(State _ s) (EvKey (KChar 'r') _) = continue =<< fmap (\y -> set' menuState y st) x
   where
     x = do
-      let (u, _) = selectedElement fs
+      let (u, _) = s ^. feedListMenu ^. selectedElementL
       liftIO $ queue u
       pure s
-    fs = case s of
-      LevelFeeds fs' -> fs'
-      LevelItems fs' _ -> fs'
-      LevelContents fs' _ -> fs'
 handleMenu queue st@(State c _) (EvKey (KChar 'R') _) = do
   liftIO $ sequence_ $ fmap (queue . fst) c
   continue st
 handleMenu _ st@(State _ s) (EvKey (KChar 'q') _) =
   case s of
     LevelFeeds _ -> halt st
-    _ -> continue $ st {_menuState = stateUp s}
+    _ -> continue $ set' menuState (stateUp s) st
 handleMenu _ st (EvKey KEnter _) = continue $ over activeItem (second $ const True) $ over menuState stateDown st
-handleMenu _ st@(State _ s) e = continue =<< fmap (\y -> st {_menuState = y}) x
+handleMenu _ st@(State _ s) e = continue =<< fmap (\y -> set' menuState y st) x
   where
     x = case s of
       LevelFeeds fs -> do
