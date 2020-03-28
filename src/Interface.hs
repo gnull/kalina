@@ -54,9 +54,9 @@ renderFeed _ f = (txt " × ")
     readStatus = if unread == 0 then "read-item" else "unread-item"
     unreadCount = T.pack $ show unread <> "/" <> show total
 
-drawMenu :: MenuState -> Widget ()
+drawMenu :: State -> Widget ()
 drawMenu s =
-    case s of
+    case s ^. menuState of
       LevelFeeds fs -> g $ renderList renderFeed True fs
       LevelItems _ is -> g $ renderList renderItem True is
       LevelContents _ is -> f $ padBottom Max $ renderContents (fst $ selectedElement is)

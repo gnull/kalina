@@ -28,7 +28,7 @@ cacheFromState :: State -> CacheFile
 cacheFromState = _innerState
 
 draw :: State -> [Widget ()]
-draw (State _ s) = [drawMenu s]
+draw s = [drawMenu s]
 
 handle :: (FilePath -> IO ()) -> State -> BrickEvent () WorkerEvent -> EventM () (Next State)
 handle queue s (VtyEvent e) = handleMenu queue s e
