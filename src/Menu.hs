@@ -49,7 +49,7 @@ initialState c = State { _innerState = c
                        }
 
 updateMenuState :: CacheFile -> MenuState -> MenuState
-updateMenuState c ms = over itemsListMenu (patchGenList fstEqual (snd $ fromJust $ snd $ selectedElement $ ms' ^. feedListMenu)) ms'
+updateMenuState c ms = over itemsListMenu (patchGenList urlEqual (snd $ fromJust $ snd $ selectedElement $ ms' ^. feedListMenu)) ms'
   where
     ms' = over feedListMenu (patchGenList fstEqual c) ms
     -- These two are utility functions
@@ -60,6 +60,8 @@ updateMenuState c ms = over itemsListMenu (patchGenList fstEqual (snd $ fromJust
         pos = fromJust $ findIndex (eq sel) l'
     fstEqual :: Eq a => (a, b) -> (a, b) -> Bool
     fstEqual (x, _) (y, _) = x == y
+    urlEqual :: (GenericItem, a) -> (GenericItem, a) -> Bool
+    urlEqual (x, _) (y, _) = giURL x == giURL y
 
 selectedElement :: L x -> x
 selectedElement = snd . fromJust . listSelectedElement
