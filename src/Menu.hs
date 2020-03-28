@@ -1,10 +1,12 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Menu where
 
 import Data.Maybe
 import Data.List
+import Data.Ord (comparing)
 import Data.Text () -- Instances
 
 import Control.Lens
@@ -34,6 +36,22 @@ makeLenses ''State
 
 toGenericList :: [a] -> L a
 toGenericList x = list () x 1
+
+glist :: (a -> Bool) -> Bool -> Lens' ([a], Maybe Int) (L a)
+glist p showAll f (l, i) = (f $ toGenericList newL & listSelectedL .~ newId) <&> \gl ->
+    if null h then
+      (l, Nothing)
+    else let
+        i' = fromMaybe 0 $ gl ^. listSelectedL
+        i'' = fst $ h !! i'
+      in (l, Just i'')
+  where
+    p' = if showAll then const True else p
+    h = filter (p' . snd) $ zip [0..] l
+    oldId = fromMaybe 0 i -- must be used only if h ≠ []
+    newId = if null h then Nothing else Just $
+      fst $ minimumBy (comparing $ \(_, x) -> abs (x - oldId)) $ zip [0..] $ map fst h
+    newL = map snd h
 
 feedListMenu :: Lens' MenuState (L (String, Maybe CacheEntry))
 feedListMenu f (LevelFeeds fs) = LevelFeeds <$> f fs
