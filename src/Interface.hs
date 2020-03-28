@@ -37,7 +37,7 @@ renderItem :: Bool -> (GenericItem , ItemStatus)-> Widget ()
 renderItem _ (GenericItem {..}, r) = padRight Max $ markup
   $ (@? if r then "read-item" else "unread-item") $
       (if r then "   " else " N ")
-   <> (fromMaybe "*No Date*" giDate)
+   <> (fromMaybe "" giDate)
    <> "  "
    <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle)
 
