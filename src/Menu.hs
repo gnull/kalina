@@ -4,6 +4,7 @@
 module Menu where
 
 import Data.Maybe
+import Data.Ord (comparing)
 import Data.List
 import Data.Text () -- Instances
 
@@ -19,13 +20,17 @@ instance Splittable [] where
 type MyList n e = GenericList n [] e
 type L e = MyList () e
 
-toGenericList :: [a] -> L a
-toGenericList x = list () x 1
-
 data MenuState
   = LevelFeeds    (L (String, Maybe CacheEntry))
   | LevelItems    (L (String, Maybe CacheEntry)) (L (GenericItem, ItemStatus))
   | LevelContents (L (String, Maybe CacheEntry)) (L (GenericItem, ItemStatus))
+
+data State = State { _innerState :: CacheFile, _menuState :: MenuState }
+
+makeLenses ''State
+
+toGenericList :: [a] -> L a
+toGenericList x = list () x 1
 
 feedListMenu :: Lens' MenuState (L (String, Maybe CacheEntry))
 feedListMenu f (LevelFeeds fs) = LevelFeeds <$> f fs
@@ -39,10 +44,6 @@ itemsListMenu :: Traversal' MenuState (L (GenericItem, ItemStatus))
 itemsListMenu _ s@(LevelFeeds _) = pure s
 itemsListMenu f (LevelItems fs is) = LevelItems fs <$> f is
 itemsListMenu f (LevelContents fs is) = LevelContents fs <$> f is
-
-data State = State { _innerState :: CacheFile, _menuState :: MenuState }
-
-makeLenses ''State
 
 -- The item which is currently selected in the items menu (or open in the contents menu)
 selectedItem :: Traversal' State (GenericItem, ItemStatus)
@@ -59,7 +60,7 @@ selectedItem f s = case (s ^. menuState) ^? itemsListMenu of
                       pure (u', Just (gf, is))
                in do
                  st <- traverse fu $ s ^. innerState
-                 pure $ set' innerState st $ over menuState (updateMenuState st) s
+                 pure $ syncMenuState $ set' innerState st s
     Nothing -> pure s
 
 -- As selectedItem, but works only if the item is open in the contents menu
@@ -72,6 +73,10 @@ initialState :: CacheFile -> State
 initialState c = State { _innerState = c
                        , _menuState = LevelFeeds $ toGenericList c
                        }
+
+-- TODO: Use listFilter here, after adding a bool field to State
+syncMenuState :: State -> State
+syncMenuState s = over menuState (updateMenuState $ s ^. innerState) s
 
 updateMenuState :: CacheFile -> MenuState -> MenuState
 updateMenuState c ms = over itemsListMenu (patchGenList urlEqual (snd $ fromJust $ snd $ selectedElement $ ms' ^. feedListMenu)) ms'
