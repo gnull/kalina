@@ -91,7 +91,10 @@ handleMenu _ st@(State _ s) (EvKey (KChar 'q') _) =
   case s of
     LevelFeeds _ -> halt st
     _ -> continue $ set' menuState (stateUp s) st
-handleMenu _ st (EvKey KEnter _) = continue $ over activeItem (second $ const True) $ over menuState stateDown st
+handleMenu _ st (EvKey KEnter _)
+  = continue
+  $ over activeItem (second $ const True)
+  $ over menuState stateDown st
 handleMenu _ st@(State _ s) e = continue =<< fmap (\y -> set' menuState y st) x
   where
     x = case s of

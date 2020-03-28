@@ -44,8 +44,9 @@ data State = State { _innerState :: CacheFile, _menuState :: MenuState }
 
 makeLenses ''State
 
-activeItem :: Traversal' State (GenericItem, ItemStatus)
-activeItem f s = case (s ^. menuState) ^? itemsListMenu of
+-- The item which is currently selected in the items menu (or open in the contents menu)
+selectedItem :: Traversal' State (GenericItem, ItemStatus)
+selectedItem f s = case (s ^. menuState) ^? itemsListMenu of
     Just x -> let i = x ^. (selectedElementL . _1)
                   u = s ^. (menuState . feedListMenu . selectedElementL . _1)
                   fu feed@(_, Nothing) = pure feed
@@ -60,6 +61,12 @@ activeItem f s = case (s ^. menuState) ^? itemsListMenu of
                  st <- traverse fu $ s ^. innerState
                  pure $ set' innerState st $ over menuState (updateMenuState st) s
     Nothing -> pure s
+
+-- As selectedItem, but works only if the item is open in the contents menu
+activeItem :: Traversal' State (GenericItem, ItemStatus)
+activeItem f s = case s ^. menuState of
+  LevelContents _ _ -> selectedItem f s
+  _ -> pure s
 
 initialState :: CacheFile -> State
 initialState c = State { _innerState = c
