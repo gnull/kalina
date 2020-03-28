@@ -37,6 +37,7 @@ library:
   - Menu
   - Concurrency
   - Interface
+  - Actions
 
 executables:
   news-view:

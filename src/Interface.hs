@@ -6,10 +6,8 @@ module Interface where
 import Data.Maybe
 import Data.Text () -- Instances
 import qualified Data.Text as T
-import Control.Monad.IO.Class (MonadIO(..))
 
 import Control.Lens
-import Control.Arrow (second)
 
 import GenericFeed
 
@@ -21,6 +19,7 @@ import Brick.Widgets.Border
 import Graphics.Vty.Input.Events
 
 import Menu
+import Actions
 
 renderContents :: GenericItem -> Widget ()
 renderContents (GenericItem {..}) =
@@ -78,23 +77,11 @@ drawMenu s =
     g x = vCenter $ f x
 
 handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
-handleMenu queue st@(State _ s) (EvKey (KChar 'r') _) = continue =<< fmap (\y -> set' menuState y st) x
-  where
-    x = do
-      let (u, _) = s ^. feedListMenu ^. selectedElementL
-      liftIO $ queue u
-      pure s
-handleMenu queue st@(State c _) (EvKey (KChar 'R') _) = do
-  liftIO $ sequence_ $ fmap (queue . fst) c
-  continue st
-handleMenu _ st@(State _ s) (EvKey (KChar 'q') _) =
-  case s of
-    LevelFeeds _ -> halt st
-    _ -> continue $ set' menuState (stateUp s) st
-handleMenu _ st (EvKey KEnter _)
-  = continue
-  $ over activeItem (second $ const True)
-  $ over menuState stateDown st
+handleMenu queue st (EvKey (KChar 'r') _) = fetchOne queue st
+handleMenu queue st (EvKey (KChar 'R') _) = fetchAll queue st
+handleMenu _ st (EvKey (KChar 'q') _) = back st
+handleMenu _ st (EvKey KEnter _) = enter st
+-- We let the list widget handle all the other keys
 handleMenu _ st@(State _ s) e = continue =<< fmap (\y -> set' menuState y st) x
   where
     x = case s of
