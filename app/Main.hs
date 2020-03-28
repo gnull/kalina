@@ -9,6 +9,8 @@ import System.Directory (getHomeDirectory)
 import System.FilePath ((</>))
 import Data.Text () -- Instances
 
+import Control.Lens ((^.), (&), (.~))
+
 import GenericFeed
 
 import Brick
@@ -32,10 +34,10 @@ draw s = [drawMenu s]
 
 handle :: (FilePath -> IO ()) -> State -> BrickEvent () WorkerEvent -> EventM () (Next State)
 handle queue s (VtyEvent e) = handleMenu queue s e
-handle _ (State c s) (AppEvent e) = continue $ State c' s'
+handle _ st (AppEvent e) = continue $ st & innerState .~ c' & menuState .~ s'
   where
-    c' = handleThreadEvent c e
-    s' = updateMenuState c' s
+    c' = handleThreadEvent (st ^. innerState) e
+    s' = updateMenuState c' (st ^. menuState)
 handle _ s _ = continue s
 
 theMap :: AttrMap

@@ -4,7 +4,6 @@
 module Menu where
 
 import Data.Maybe
-import Data.Ord (comparing)
 import Data.List
 import Data.Text () -- Instances
 
@@ -25,7 +24,11 @@ data MenuState
   | LevelItems    (L (String, Maybe CacheEntry)) (L (GenericItem, ItemStatus))
   | LevelContents (L (String, Maybe CacheEntry)) (L (GenericItem, ItemStatus))
 
-data State = State { _innerState :: CacheFile, _menuState :: MenuState }
+data State = State { _innerState :: CacheFile
+                   , _menuState :: MenuState
+                   , _showUnreadFeeds :: Bool
+                   , _showUnreadItems :: Bool
+                   }
 
 makeLenses ''State
 
@@ -72,6 +75,8 @@ activeItem f s = case s ^. menuState of
 initialState :: CacheFile -> State
 initialState c = State { _innerState = c
                        , _menuState = LevelFeeds $ toGenericList c
+                       , _showUnreadFeeds = True
+                       , _showUnreadItems = True
                        }
 
 -- TODO: Use listFilter here, after adding a bool field to State

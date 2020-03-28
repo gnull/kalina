@@ -82,8 +82,9 @@ handleMenu queue st (EvKey (KChar 'R') _) = fetchAll queue st
 handleMenu _ st (EvKey (KChar 'q') _) = back st
 handleMenu _ st (EvKey KEnter _) = enter st
 -- We let the list widget handle all the other keys
-handleMenu _ st@(State _ s) e = continue =<< fmap (\y -> set' menuState y st) x
+handleMenu _ st e = continue =<< fmap (\y -> set' menuState y st) x
   where
+    s = st ^. menuState
     x = case s of
       LevelFeeds fs -> do
         fs' <- handleListEventVi handleListEvent e fs
