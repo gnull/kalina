@@ -43,7 +43,7 @@ renderItem _ (GenericItem {..}, r) = padRight Max $ markup
 
 renderFeed :: Bool -> (String, Maybe CacheEntry) -> Widget ()
 renderFeed _ f = (txt " × ")
-              <+> (hLimit 6 $ padRight Max $ markup $ unreadCount @? readStatus)
+              <+> (hLimit 7 $ padRight Max $ markup $ unreadCount @? readStatus)
               <+> vLimit 1 vBorder
               <+> (padRight Max $ markup $ (" " <> caption) @? readStatus)
   where
