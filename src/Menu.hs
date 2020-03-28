@@ -21,10 +21,10 @@ instance Splittable [] where
 type MyList n e = GenericList n [] e
 type L e = MyList () e
 
-data MenuState
-  = LevelFeeds    (L (String, Maybe CacheEntry))
-  | LevelItems    (L (String, Maybe CacheEntry)) (L (GenericItem, ItemStatus))
-  | LevelContents (L (String, Maybe CacheEntry)) (L (GenericItem, ItemStatus))
+data MenuState -- The parameters are indices of selected items
+  = LevelFeeds    (Maybe Int)
+  | LevelItems    Int Int
+  | LevelContents Int Int
 
 data State = State { _innerState :: CacheFile
                    , _menuState :: MenuState
@@ -37,6 +37,9 @@ makeLenses ''State
 toGenericList :: [a] -> L a
 toGenericList x = list () x 1
 
+-- This lens allows one to "look into" the generic list represented by a pair of
+-- list and an index. All the changes made to the generic list are reflected in
+-- the pair.
 glist :: (a -> Bool) -> Bool -> Lens' ([a], Maybe Int) (L a)
 glist p showAll f (l, i) = (f $ toGenericList newL & listSelectedL .~ newId) <&> \gl ->
     if null h then
@@ -53,36 +56,28 @@ glist p showAll f (l, i) = (f $ toGenericList newL & listSelectedL .~ newId) <&>
       fst $ minimumBy (comparing $ \(_, x) -> abs (x - oldId)) $ zip [0..] $ map fst h
     newL = map snd h
 
-feedListMenu :: Lens' MenuState (L (String, Maybe CacheEntry))
-feedListMenu f (LevelFeeds fs) = LevelFeeds <$> f fs
-feedListMenu f (LevelItems fs is) = (\x -> LevelItems x is) <$> f fs
-feedListMenu f (LevelContents fs is) = (\x -> LevelContents x is) <$> f fs
+listLens :: Int -> Lens' [a] a
+listLens i f l = f x <&> \x' -> l1 ++ x' : l2
+  where
+    (l1, x:l2) = Data.List.splitAt i l
 
--- This allows to modify the `is' field of MenuState. If the field is not
--- present, nothing happens. But it doesn't allow reading the field, since it
--- may not be present.
-itemsListMenu :: Traversal' MenuState (L (GenericItem, ItemStatus))
-itemsListMenu _ s@(LevelFeeds _) = pure s
-itemsListMenu f (LevelItems fs is) = LevelItems fs <$> f is
-itemsListMenu f (LevelContents fs is) = LevelContents fs <$> f is
+selectedFeed :: Traversal' State (String, Maybe (GenericFeed, [(GenericItem, ItemStatus)]))
+selectedFeed f s = case s ^. menuState of
+  LevelFeeds Nothing -> pure s
+  LevelFeeds (Just i) -> innerState (listLens i f) s
+  LevelItems    i _ -> innerState (listLens i f) s
+  LevelContents i _ -> innerState (listLens i f) s
 
 -- The item which is currently selected in the items menu (or open in the contents menu)
 selectedItem :: Traversal' State (GenericItem, ItemStatus)
-selectedItem f s = case (s ^. menuState) ^? itemsListMenu of
-    Just x -> let i = x ^. (selectedElementL . _1)
-                  u = s ^. (menuState . feedListMenu . selectedElementL . _1)
-                  fu feed@(_, Nothing) = pure feed
-                  fu (u', Just (gf, is)) = do
-                    if u == u' then do
-                      is' <- flip traverse is $ \(i', readStatus) ->
-                        if i' == i then f (i', readStatus) else pure (i', readStatus)
-                      pure (u', Just (gf, is'))
-                    else
-                      pure (u', Just (gf, is))
-               in do
-                 st <- traverse fu $ s ^. innerState
-                 pure $ syncMenuState $ set' innerState st s
-    Nothing -> pure s
+selectedItem f s = case s ^. menuState of
+    LevelFeeds _ -> pure s
+    LevelItems _ ii -> helper s ii
+    LevelItems _ ii -> helper s ii
+  where
+    helper s ii = let
+        foo (u, Just (feed, items)) = listLens ii f items <&> \items' -> (u, Just (feed, items'))
+      in selectedFeed foo s
 
 -- As selectedItem, but works only if the item is open in the contents menu
 activeItem :: Traversal' State (GenericItem, ItemStatus)
@@ -92,50 +87,26 @@ activeItem f s = case s ^. menuState of
 
 initialState :: CacheFile -> State
 initialState c = State { _innerState = c
-                       , _menuState = LevelFeeds $ toGenericList c
+                       , _menuState = LevelFeeds $ if null c then Nothing else Just 0
                        , _showUnreadFeeds = True
                        , _showUnreadItems = True
                        }
 
--- TODO: Use listFilter here, after adding a bool field to State
-syncMenuState :: State -> State
-syncMenuState s = over menuState (updateMenuState $ s ^. innerState) s
-
-updateMenuState :: CacheFile -> MenuState -> MenuState
-updateMenuState c ms = over itemsListMenu (patchGenList urlEqual (snd $ fromJust $ snd $ selectedElement $ ms' ^. feedListMenu)) ms'
-  where
-    ms' = over feedListMenu (patchGenList fstEqual c) ms
-    -- These two are utility functions
-    patchGenList :: (a -> a -> Bool) -> [a] -> L a -> L a
-    patchGenList eq l' l = listReplace l' (Just pos) l
-      where
-        sel = selectedElement l
-        pos = fromJust $ findIndex (eq sel) l'
-    fstEqual :: Eq a => (a, b) -> (a, b) -> Bool
-    fstEqual (x, _) (y, _) = x == y
-    urlEqual :: (GenericItem, a) -> (GenericItem, a) -> Bool
-    urlEqual (x, _) (y, _) = giURL x == giURL y
-
-selectedElement :: L x -> x
-selectedElement = snd . fromJust . listSelectedElement
-
-selectedElementL :: Lens' (L x) x
-selectedElementL f l = (\y -> listModify (const y) l) <$> f x
-  where
-    x = selectedElement l
-
 -- TODO: Make these two functions work with State instead of MenuState
 
-stateDown :: MenuState -> MenuState
-stateDown s@(LevelFeeds fs) =
-  let f = selectedElement fs
-  in case snd f of
-    Nothing -> s
-    Just (_, is) -> LevelItems fs $ toGenericList is
-stateDown (LevelItems fs is) = LevelContents fs is
-stateDown s@(LevelContents _ _) = s
+stateDown :: State -> State
+stateDown s = case s ^. menuState of
+  LevelFeeds Nothing -> s
+  LevelFeeds (Just i) -> fromMaybe s $ do
+    (_, gf) <- s ^? selectedFeed
+    (_, is) <- gf
+    pure $ s & menuState .~ LevelItems i 0
+  LevelItems i j -> s & menuState .~ LevelContents i j
+  LevelContents _ _ -> s
 
-stateUp :: MenuState -> MenuState
-stateUp s@(LevelFeeds _) = s
-stateUp (LevelItems fs _) = LevelFeeds fs
-stateUp (LevelContents fs is) = LevelItems fs is
+stateUp :: State -> State
+stateUp s = over menuState f s
+  where
+    f s@(LevelFeeds _) = s
+    f (LevelItems fs _) = LevelFeeds (Just fs)
+    f (LevelContents fs is) = LevelItems fs is
