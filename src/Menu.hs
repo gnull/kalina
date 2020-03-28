@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ApplicativeDo #-}
 
 module Menu where
 
@@ -42,6 +43,23 @@ itemsListMenu f (LevelContents fs is) = LevelContents fs <$> f is
 data State = State { _innerState :: CacheFile, _menuState :: MenuState }
 
 makeLenses ''State
+
+activeItem :: Traversal' State (GenericItem, ItemStatus)
+activeItem f s = case (s ^. menuState) ^? itemsListMenu of
+    Just x -> let i = x ^. (selectedElementL . _1)
+                  u = s ^. (menuState . feedListMenu . selectedElementL . _1)
+                  fu feed@(_, Nothing) = pure feed
+                  fu (u', Just (gf, is)) = do
+                    if u == u' then do
+                      is' <- flip traverse is $ \(i', readStatus) ->
+                        if i' == i then f (i', readStatus) else pure (i', readStatus)
+                      pure (u', Just (gf, is'))
+                    else
+                      pure (u', Just (gf, is))
+               in do
+                 st <- traverse fu $ s ^. innerState
+                 pure $ set' innerState st $ over menuState (updateMenuState st) s
+    Nothing -> pure s
 
 initialState :: CacheFile -> State
 initialState c = State { _innerState = c

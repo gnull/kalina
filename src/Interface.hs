@@ -8,6 +8,9 @@ import Data.Text () -- Instances
 import qualified Data.Text as T
 import Control.Monad.IO.Class (MonadIO(..))
 
+import Control.Lens
+import Control.Arrow (second)
+
 import GenericFeed
 
 import Brick
@@ -92,7 +95,7 @@ handleMenu _ st@(State _ s) (EvKey (KChar 'q') _) =
   case s of
     LevelFeeds _ -> halt st
     _ -> continue $ st {_menuState = stateUp s}
-handleMenu _ st@(State _ s) (EvKey KEnter _) = continue $ st {_menuState = stateDown s}
+handleMenu _ st (EvKey KEnter _) = continue $ over activeItem (second $ const True) $ over menuState stateDown st
 handleMenu _ st@(State _ s) e = continue =<< fmap (\y -> st {_menuState = y}) x
   where
     x = case s of
