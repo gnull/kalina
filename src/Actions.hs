@@ -6,14 +6,20 @@ module Actions
   , fetchAll
   , toggleShowRead
   , markAsRead
+  , openCurrentUrl
   ) where
 
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Lens
 import Control.Arrow (second)
 
+import Data.Text (unpack)
+
+import System.Process (rawSystem)
+
 import Brick
 import Menu
+import GenericFeed
 
 type Action = State -> EventM () (Next State)
 
@@ -48,3 +54,10 @@ toggleShowRead st = continue $ case st ^. menuState of
 
 markAsRead :: Action
 markAsRead st = continue $ over (selectedFeed . itemsOfFeed) (map $ second $ const True) st
+
+openCurrentUrl :: Action
+openCurrentUrl st = suspendAndResume (f >> pure (over activeItem (second $ const True) st))
+  where
+    f = case st ^? selectedItem . _1 . giURLL . _Just of
+      Just u -> rawSystem "xdg-open" [unpack u] >> pure ()
+      Nothing -> pure ()

@@ -89,6 +89,7 @@ handleMenu _ st (EvKey (KChar 'q') _) = back st
 handleMenu _ st (EvKey KEnter _) = enter st
 handleMenu _ st (EvKey (KChar 'l') _) = toggleShowRead st
 handleMenu _ st (EvKey (KChar 'A') _) = markAsRead st
+handleMenu _ st (EvKey (KChar 'o') _) = openCurrentUrl st
 -- We let the list widget handle all the other keys
 handleMenu _ st e = continue =<< fmap (\y -> set' menuState y st) x
   where

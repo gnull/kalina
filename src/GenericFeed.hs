@@ -11,6 +11,8 @@ import Data.List
 import Control.Arrow ((&&&))
 import Control.Monad (join, (>=>))
 
+import Control.Lens
+
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -28,6 +30,9 @@ data GenericItem = GenericItem
   , giAuthor :: Maybe Text
   , giBody :: Maybe Text -- Contents displayed when Enter is pressed
   } deriving (Show, Read, Eq)
+
+giURLL :: Lens' GenericItem (Maybe Text)
+giURLL f st = (f $ giURL st) <&> \u -> st {giURL = u}
 
 data GenericFeed = GenericFeed
   { gfTitle :: Text
