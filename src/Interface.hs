@@ -66,7 +66,7 @@ drawMenu s =
     f x = vBox
       [x
       , str ""
-      , vLimit 3 $ borderWithLabel (str "help") $
+      , vLimit 3 $ borderWithLabel (str "Help") $
             str " q - back/quit "
         <+> vBorder
         <+> str " r - fetch selected feed "
@@ -77,7 +77,7 @@ drawMenu s =
         <+> vBorder
         <+> str " u - toggle unread"
         <+> vBorder
-        <+> str " h,j,k,l - navigation "]
+        <+> str " j,k - navigation "]
     g x = vCenter $ f x
 
 handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
