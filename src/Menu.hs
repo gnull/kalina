@@ -77,6 +77,9 @@ selectedFeed f s = case s ^. menuState of
   LevelItems    i _ -> innerState (listLens i f) s
   LevelContents i _ -> innerState (listLens i f) s
 
+itemsOfFeed :: Traversal' (String, Maybe (GenericFeed, [(GenericItem, ItemStatus)])) [(GenericItem, ItemStatus)]
+itemsOfFeed = _2 . _Just . _2
+
 -- The item which is currently selected in the items menu (or open in the contents menu)
 selectedItem :: Traversal' State (GenericItem, ItemStatus)
 selectedItem f s = case s ^. menuState of

@@ -60,7 +60,7 @@ drawMenu s =
       LevelFeeds fi -> g $ renderList renderFeed True $ (s ^. innerState, fi) ^. feedsListState (s ^. showUnreadFeeds)
       LevelItems fi is
         -> g $ renderList renderItem True
-             $ (snd $ fromJust $ snd $ (s ^. innerState) !! fi, Just is) ^. itemsListState (s ^. showUnreadItems)
+             $ (fromJust $ s ^? selectedFeed . itemsOfFeed, Just is) ^. itemsListState (s ^. showUnreadItems)
       LevelContents _ is -> f $ padBottom Max $ renderContents $ fromJust $ s ^? (selectedItem . _1)
   where
     f x = vBox
@@ -95,7 +95,7 @@ handleMenu _ st e = continue =<< fmap (\y -> set' menuState y st) x
         (_, fs') <- feedsListState (st ^. showUnreadFeeds) (handleListEventVi handleListEvent e) (st ^. innerState, fs)
         pure $ LevelFeeds fs'
       LevelItems fs is -> do
-        v <- itemsListState (st ^. showUnreadItems) (handleListEventVi handleListEvent e) (snd $ fromJust $ snd $ (st ^. innerState) !! fs, Just is)
+        v <- itemsListState (st ^. showUnreadItems) (handleListEventVi handleListEvent e) (fromJust $ st ^? selectedFeed . itemsOfFeed, Just is)
         case v of
           (_, Just is') -> pure $ LevelItems fs is'
           (_, Nothing) -> error "Brick ate my index!"
