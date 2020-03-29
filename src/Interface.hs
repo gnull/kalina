@@ -58,10 +58,10 @@ drawMenu :: State -> Widget ()
 drawMenu s =
     case s ^. menuState of
       LevelFeeds fi -> g $ renderList renderFeed True $ (s ^. innerState, fi) ^. feedsListState (s ^. showUnreadFeeds)
-      LevelItems fi is
+      LevelItems _ is
         -> g $ renderList renderItem True
              $ (fromJust $ s ^? selectedFeed . itemsOfFeed, Just is) ^. itemsListState (s ^. showUnreadItems)
-      LevelContents _ is -> f $ padBottom Max $ renderContents $ fromJust $ s ^? (selectedItem . _1)
+      LevelContents _ _ -> f $ padBottom Max $ renderContents $ fromJust $ s ^? (selectedItem . _1)
   where
     f x = vBox
       [x
