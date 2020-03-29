@@ -34,10 +34,9 @@ draw s = [drawMenu s]
 
 handle :: (FilePath -> IO ()) -> State -> BrickEvent () WorkerEvent -> EventM () (Next State)
 handle queue s (VtyEvent e) = handleMenu queue s e
-handle _ st (AppEvent e) = continue $ st & innerState .~ c' & menuState .~ s'
+handle _ st (AppEvent e) = continue $ st & innerState .~ c'
   where
     c' = handleThreadEvent (st ^. innerState) e
-    s' = updateMenuState c' (st ^. menuState)
 handle _ s _ = continue s
 
 theMap :: AttrMap

@@ -56,6 +56,15 @@ glist p showAll f (l, i) = (f $ toGenericList newL & listSelectedL .~ newId) <&>
       fst $ minimumBy (comparing $ \(_, x) -> abs (x - oldId)) $ zip [0..] $ map fst h
     newL = map snd h
 
+feedsListState :: Bool -> Lens' (CacheFile, Maybe Int) (L (String, Maybe CacheEntry))
+feedsListState = glist $ \(_, x) -> case x of
+  Nothing -> False
+  Just (_, []) -> False
+  Just (_, _) -> True
+
+itemsListState :: Bool -> Lens' ([(GenericItem, ItemStatus)], Maybe Int) (L (GenericItem, ItemStatus))
+itemsListState = glist $ not . snd
+
 listLens :: Int -> Lens' [a] a
 listLens i f l = f x <&> \x' -> l1 ++ x' : l2
   where
@@ -72,11 +81,12 @@ selectedFeed f s = case s ^. menuState of
 selectedItem :: Traversal' State (GenericItem, ItemStatus)
 selectedItem f s = case s ^. menuState of
     LevelFeeds _ -> pure s
-    LevelItems _ ii -> helper s ii
-    LevelItems _ ii -> helper s ii
+    LevelItems _ ii -> helper ii
+    LevelContents _ ii -> helper ii
   where
-    helper s ii = let
+    helper ii = let
         foo (u, Just (feed, items)) = listLens ii f items <&> \items' -> (u, Just (feed, items'))
+        foo (_, Nothing) = error "Index ii points into a non-existent list"
       in selectedFeed foo s
 
 -- As selectedItem, but works only if the item is open in the contents menu
@@ -100,12 +110,13 @@ stateDown s = case s ^. menuState of
   LevelFeeds (Just i) -> fromMaybe s $ do
     (_, gf) <- s ^? selectedFeed
     (_, is) <- gf
+    _ <- listToMaybe is
     pure $ s & menuState .~ LevelItems i 0
   LevelItems i j -> s & menuState .~ LevelContents i j
   LevelContents _ _ -> s
 
 stateUp :: State -> State
-stateUp s = over menuState f s
+stateUp st = over menuState f st
   where
     f s@(LevelFeeds _) = s
     f (LevelItems fs _) = LevelFeeds (Just fs)

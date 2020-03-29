@@ -57,9 +57,11 @@ renderFeed _ f = (txt " × ")
 drawMenu :: State -> Widget ()
 drawMenu s =
     case s ^. menuState of
-      LevelFeeds fs -> g $ renderList renderFeed True fs
-      LevelItems _ is -> g $ renderList renderItem True is
-      LevelContents _ is -> f $ padBottom Max $ renderContents (fst $ selectedElement is)
+      LevelFeeds fi -> g $ renderList renderFeed True $ (s ^. innerState, fi) ^. feedsListState (s ^. showUnreadFeeds)
+      LevelItems fi is
+        -> g $ renderList renderItem True
+             $ (snd $ fromJust $ snd $ (s ^. innerState) !! fi, Just is) ^. itemsListState (s ^. showUnreadItems)
+      LevelContents _ is -> f $ padBottom Max $ renderContents $ fromJust $ s ^? (selectedItem . _1)
   where
     f x = vBox
       [x
@@ -87,9 +89,11 @@ handleMenu _ st e = continue =<< fmap (\y -> set' menuState y st) x
     s = st ^. menuState
     x = case s of
       LevelFeeds fs -> do
-        fs' <- handleListEventVi handleListEvent e fs
+        (_, fs') <- feedsListState (st ^. showUnreadFeeds) (handleListEventVi handleListEvent e) (st ^. innerState, fs)
         pure $ LevelFeeds fs'
       LevelItems fs is -> do
-        is' <- handleListEventVi handleListEvent e is
-        pure $ LevelItems fs is'
+        v <- itemsListState (st ^. showUnreadItems) (handleListEventVi handleListEvent e) (snd $ fromJust $ snd $ (st ^. innerState) !! fs, Just is)
+        case v of
+          (_, Just is') -> pure $ LevelItems fs is'
+          (_, Nothing) -> error "Brick ate my index!"
       LevelContents _ _ -> pure s
