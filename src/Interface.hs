@@ -67,17 +67,19 @@ drawMenu s =
       [x
       , str ""
       , vLimit 3 $ borderWithLabel (str "Help") $
-            str " q - back/quit "
+            str "q - back/quit"
         <+> vBorder
-        <+> str " r - fetch selected feed "
+        <+> str "r - fetch selected feed"
         <+> vBorder
-        <+> str " R - fetch all feeds "
+        <+> str "R - fetch all feeds"
         <+> vBorder
-        <+> str " Enter - open an entry "
+        <+> str "Enter - open an entry"
         <+> vBorder
-        <+> str " u - toggle unread"
+        <+> str "u - toggle unrea"
         <+> vBorder
-        <+> str " j,k - navigation "]
+        <+> str "A - mark all as rea"
+        <+> vBorder
+        <+> str "j,k - navigation"]
     g x = vCenter $ f x
 
 handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
@@ -86,6 +88,7 @@ handleMenu queue st (EvKey (KChar 'R') _) = fetchAll queue st
 handleMenu _ st (EvKey (KChar 'q') _) = back st
 handleMenu _ st (EvKey KEnter _) = enter st
 handleMenu _ st (EvKey (KChar 'l') _) = toggleShowRead st
+handleMenu _ st (EvKey (KChar 'A') _) = markAsRead st
 -- We let the list widget handle all the other keys
 handleMenu _ st e = continue =<< fmap (\y -> set' menuState y st) x
   where
