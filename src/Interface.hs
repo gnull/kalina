@@ -75,6 +75,8 @@ drawMenu s =
         <+> vBorder
         <+> str " Enter - open an entry "
         <+> vBorder
+        <+> str " u - toggle unread"
+        <+> vBorder
         <+> str " h,j,k,l - navigation "]
     g x = vCenter $ f x
 
@@ -83,6 +85,7 @@ handleMenu queue st (EvKey (KChar 'r') _) = fetchOne queue st
 handleMenu queue st (EvKey (KChar 'R') _) = fetchAll queue st
 handleMenu _ st (EvKey (KChar 'q') _) = back st
 handleMenu _ st (EvKey KEnter _) = enter st
+handleMenu _ st (EvKey (KChar 'l') _) = toggleShowRead st
 -- We let the list widget handle all the other keys
 handleMenu _ st e = continue =<< fmap (\y -> set' menuState y st) x
   where
