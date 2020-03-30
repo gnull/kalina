@@ -60,8 +60,7 @@ glist p showAll f (l, i) = (f $ toGenericList newL & listSelectedL .~ newId) <&>
 feedsListState :: Bool -> Lens' (CacheFile, Maybe Int) (L (String, Maybe CacheEntry))
 feedsListState = glist $ \(_, x) -> case x of
   Nothing -> False
-  Just (_, []) -> False
-  Just (_, _) -> True
+  Just (_, l) -> any (not . snd) l
 
 itemsListState :: Bool -> Lens' ([(GenericItem, ItemStatus)], Maybe Int) (L (GenericItem, ItemStatus))
 itemsListState = glist $ not . snd
