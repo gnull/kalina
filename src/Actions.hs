@@ -47,6 +47,7 @@ fetchAll queue st = do
   liftIO $ sequence_ $ fmap (queue . fst) (st ^. innerState)
   continue st
 
+-- There's a bug in this function. It must update indices as well.
 toggleShowRead :: Action
 toggleShowRead st = continue $ case st ^. menuState of
   LevelFeeds _ -> over showUnreadFeeds not st
