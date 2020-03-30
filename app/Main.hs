@@ -29,9 +29,6 @@ import Control.Concurrent.Async (async, cancel)
 cacheFromState :: State -> CacheFile
 cacheFromState = _innerState
 
-draw :: State -> [Widget ()]
-draw s = [drawMenu s]
-
 handle :: (FilePath -> IO ()) -> State -> BrickEvent () WorkerEvent -> EventM () (Next State)
 handle queue s (VtyEvent e) = handleMenu queue s e
 handle _ st (AppEvent e) = continue $ st & innerState .~ c'
@@ -44,6 +41,8 @@ theMap = attrMap V.defAttr
     [ (listAttr,            V.white `on` V.black)
     , (listSelectedAttr,    V.white `on` V.blue)
     , ("unread-item",       V.withStyle V.currentAttr V.bold)
+    , ("hightlight",        V.withStyle V.currentAttr V.bold)
+    , ("title",             V.black `on` V.white)
     ]
 
 app :: (FilePath -> IO ()) -> App State WorkerEvent ()

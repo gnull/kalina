@@ -54,35 +54,52 @@ renderFeed _ f = (txt " × ")
     readStatus = if unread == 0 then "read-item" else "unread-item"
     unreadCount = T.pack $ show unread <> "/" <> show total
 
+helpWidget :: Widget ()
+helpWidget = vBox
+           [ withAttr "title" $ padRight Max $ str "Help"
+           , hCenter $ markup $
+                "j,k" @? hl <> " — navigation\n"
+             <> "Enter" @? hl <> " — open a menu item\n"
+             <> "Esc" @? hl <> " — back/quit\n"
+             <> "A" @? hl <> " — mark current feed as read\n"
+             <> "l" @? hl <> " — toggle display of read feed/items\n"
+             <> "r/R" @? hl <> " — fetch current feed/all feeds\n"
+             <> "o" @? hl <> " — open current item in browser\n"
+           ]
+  where
+    hl = "hightlight"
+
 drawMenu :: State -> Widget ()
 drawMenu s =
-    case s ^. menuState of
-      LevelFeeds fi -> g $ renderList renderFeed True $ (s ^. innerState, fi) ^. feedsListState (s ^. showUnreadFeeds)
-      LevelItems _ is
-        -> g $ renderList renderItem True
-             $ (fromJust $ s ^? selectedFeed . itemsOfFeed, Just is) ^. itemsListState (s ^. showUnreadItems)
-      LevelContents _ _ -> f $ padBottom Max $ renderContents $ fromJust $ s ^? (selectedItem . _1)
+    if s ^. displayHelp then
+      helpWidget
+    else
+      case s ^. menuState of
+        LevelFeeds fi -> g $ renderList renderFeed True $ (s ^. innerState, fi) ^. feedsListState (s ^. showUnreadFeeds)
+        LevelItems _ is
+          -> g $ renderList renderItem True
+               $ (fromJust $ s ^? selectedFeed . itemsOfFeed, Just is) ^. itemsListState (s ^. showUnreadItems)
+        LevelContents _ _ -> f $ padBottom Max $ renderContents $ fromJust $ s ^? (selectedItem . _1)
   where
     f x = vBox
-      [x
-      , str ""
-      , vLimit 3 $ borderWithLabel (str "Help") $
-            str "q - back/quit"
-        <+> vBorder
-        <+> str "r - fetch selected feed"
-        <+> vBorder
-        <+> str "R - fetch all feeds"
-        <+> vBorder
-        <+> str "Enter - open an entry"
-        <+> vBorder
-        <+> str "u - toggle unrea"
-        <+> vBorder
-        <+> str "A - mark all as rea"
-        <+> vBorder
-        <+> str "j,k - navigation"]
+      [ withAttr "title" $ padRight Max $ str "Title"
+      , x
+      , helpLine
+      ]
     g x = vCenter $ f x
 
+helpLine :: Widget ()
+helpLine = border $ vLimit 1 $ padRight Max $
+      str " q - back/quit "
+  <+> vBorder
+  <+> str " ? - help "
+
+
+draw :: State -> [Widget ()]
+draw s = [drawMenu s]
+
 handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
+handleMenu _ st@(State {_displayHelp = True}) (EvKey _ _) = toggleHelp st
 handleMenu queue st (EvKey (KChar 'r') _) = fetchOne queue st
 handleMenu queue st (EvKey (KChar 'R') _) = fetchAll queue st
 handleMenu _ st (EvKey (KChar 'q') _) = back st
@@ -90,6 +107,7 @@ handleMenu _ st (EvKey KEnter _) = enter st
 handleMenu _ st (EvKey (KChar 'l') _) = toggleShowRead st
 handleMenu _ st (EvKey (KChar 'A') _) = markAsRead st
 handleMenu _ st (EvKey (KChar 'o') _) = openCurrentUrl st
+handleMenu _ st (EvKey (KChar '?') _) = toggleHelp st
 -- We let the list widget handle all the other keys
 handleMenu _ st e = continue =<< fmap (\y -> set' menuState y st) x
   where

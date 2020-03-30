@@ -7,6 +7,7 @@ module Actions
   , toggleShowRead
   , markAsRead
   , openCurrentUrl
+  , toggleHelp
   ) where
 
 import Control.Monad.IO.Class (MonadIO(..))
@@ -51,6 +52,9 @@ toggleShowRead st = continue $ case st ^. menuState of
   LevelFeeds _ -> over showUnreadFeeds not st
   LevelItems _ _ -> over showUnreadItems not st
   LevelContents _ _ -> st
+
+toggleHelp :: Action
+toggleHelp st = continue $ over displayHelp not st
 
 markAsRead :: Action
 markAsRead st = continue $ over (selectedFeed . itemsOfFeed) (map $ second $ const True) st

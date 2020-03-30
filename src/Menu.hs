@@ -30,6 +30,7 @@ data State = State { _innerState :: CacheFile
                    , _menuState :: MenuState
                    , _showUnreadFeeds :: Bool
                    , _showUnreadItems :: Bool
+                   , _displayHelp :: Bool
                    }
 
 makeLenses ''State
@@ -103,6 +104,7 @@ initialState c = State { _innerState = c
                        , _menuState = LevelFeeds $ if null c then Nothing else Just 0
                        , _showUnreadFeeds = True
                        , _showUnreadItems = True
+                       , _displayHelp = False
                        }
 
 -- TODO: Make these two functions work with State instead of MenuState
