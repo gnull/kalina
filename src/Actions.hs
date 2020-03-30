@@ -60,7 +60,7 @@ markAsRead :: Action
 markAsRead st = continue $ over (selectedFeed . itemsOfFeed) (map $ second $ const True) st
 
 openCurrentUrl :: Action
-openCurrentUrl st = suspendAndResume (f >> pure (over activeItem (second $ const True) st))
+openCurrentUrl st = suspendAndResume (f >> pure (over selectedItem (second $ const True) st))
   where
     f = case st ^? selectedItem . _1 . giURLL . _Just of
       Just u -> rawSystem "xdg-open" [unpack u] >> pure ()
