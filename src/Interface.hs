@@ -120,5 +120,5 @@ handleMenu _ st e = continue =<< fmap (\y -> set' menuState y st) x
         v <- itemsListState (st ^. showUnreadItems) (handleListEventVi handleListEvent e) (fromJust $ st ^? selectedFeed . itemsOfFeed, Just is)
         case v of
           (_, Just is') -> pure $ LevelItems fs is'
-          (_, Nothing) -> error "Brick ate my index!"
+          (_, Nothing) -> pure $ LevelItems fs is
       LevelContents _ _ -> pure s
