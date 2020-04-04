@@ -60,7 +60,7 @@ helpWidget = vBox
            , hCenter $ markup $
                 "j,k" @? hl <> " — navigation\n"
              <> "Enter" @? hl <> " — open a menu item\n"
-             <> "Esc" @? hl <> " — back/quit\n"
+             <> "q" @? hl <> " — back/quit\n"
              <> "A" @? hl <> " — mark current feed as read\n"
              <> "l" @? hl <> " — toggle display of read feed/items\n"
              <> "r/R" @? hl <> " — fetch current feed/all feeds\n"
