@@ -14,6 +14,7 @@ import Control.Monad.IO.Class (MonadIO(..))
 import Control.Lens
 import Control.Arrow (second)
 
+import Data.Maybe (fromJust)
 import Data.Text (unpack)
 
 import System.Process (rawSystem)
@@ -47,12 +48,20 @@ fetchAll queue st = do
   liftIO $ sequence_ $ fmap (queue . fst) (st ^. innerState)
   continue st
 
--- There's a bug in this function. It must update indices as well.
+-- In addition to simply inverting the internal Bool fields, this function also
+-- "touches" the list indices — it applies id function to list widget state
+-- through a lens to make sure indexes point to a visible element.
 toggleShowRead :: Action
 toggleShowRead st = continue $ case st ^. menuState of
-  LevelFeeds _ -> over showUnreadFeeds not st
-  LevelItems _ _ -> over showUnreadItems not st
-  LevelContents _ _ -> st
+    LevelFeeds fs -> let
+        st' = over showUnreadFeeds not st
+        (_, fs') = over (feedsListState $ st' ^. showUnreadFeeds) id (st' ^. innerState, fs)
+      in st' & menuState .~ LevelFeeds fs'
+    LevelItems fs is -> let
+        st' = over showUnreadItems not st
+        (_, Just is') = over (itemsListState $ st' ^. showUnreadItems) id (fromJust $ st' ^? (selectedFeed . itemsOfFeed), Just is)
+      in st' & menuState .~ LevelItems fs is'
+    LevelContents _ _ -> st
 
 toggleHelp :: Action
 toggleHelp st = continue $ over displayHelp not st
