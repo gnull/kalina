@@ -26,7 +26,7 @@ data GenericItem = GenericItem
   , giDate :: Maybe Text -- TODO: Replace this with some better type for date.
                          -- Also, newsboat seems to write `now` into this field instead of Nothing
   , giAuthor :: Maybe Text
-  , giBody :: Maybe Text -- Contents displayed when Enter is pressed
+  , giBody :: Maybe Text -- Contents displayed when Enter is pressed (HTML by default)
   } deriving (Show, Read, Eq)
 
 giURLL :: Lens' GenericItem (Maybe Text)

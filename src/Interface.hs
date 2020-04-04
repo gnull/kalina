@@ -18,19 +18,25 @@ import Brick.Widgets.Center
 import Brick.Widgets.Border
 import Graphics.Vty.Input.Events
 
+import Text.Pandoc (runPure, writePlain, readHtml, def)
+
 import Menu
 import Actions
 
 renderContents :: GenericItem -> Widget ()
 renderContents (GenericItem {..}) =
-  txtWrap $ T.unlines $ catMaybes
-    [ ("Title: " <>) <$> giTitle
-    , ("Link: " <>) <$> giURL
-    , ("Author: " <>) <$> giAuthor
-    , ("Date: " <>) <$> giDate
-    , Just ""
-    , giBody
-    ]
+    txtWrap $ T.unlines $ catMaybes
+      [ ("Title: " <>) <$> giTitle
+      , ("Link: " <>) <$> giURL
+      , ("Author: " <>) <$> giAuthor
+      , ("Date: " <>) <$> giDate
+      , Just ""
+      , f <$> giBody
+      ]
+  where
+    f x = case runPure $ writePlain def =<< readHtml def x of
+      Left e -> T.pack $ show e
+      Right b -> b
 
 renderItem :: Bool -> (GenericItem , ItemStatus)-> Widget ()
 renderItem _ (GenericItem {..}, r) = padRight Max $ markup
