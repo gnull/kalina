@@ -6,8 +6,6 @@
 module GenericFeed where
 
 import Control.Exception (try)
-import Data.Maybe
-import Data.List
 import Control.Arrow ((&&&))
 import Control.Monad (join, (>=>))
 
@@ -108,18 +106,6 @@ parseFeedsConfig = filter (not . null) . map processUrlLine . lines
     processUrlLine = headDefault "" . words . takeWhile (/= '#')
     headDefault d [] = d
     headDefault _ (x:_) = x
-
--- The next two functions are for debugging purposes
-
-printGenericItem :: GenericItem -> IO ()
-printGenericItem (GenericItem {..}) = do
-  T.putStrLn $ fm giTitle <> " by " <> fm giAuthor
-  T.putStrLn $ fm giURL
-  T.putStrLn $ fm giBody
-  where fm = fromMaybe ("" :: Text)
-
-printGenericItems :: [GenericItem] -> IO ()
-printGenericItems = sequence_ . intersperse (putStrLn "---") . map printGenericItem
 
 showGenericFeed :: GenericFeed -> IO ()
 showGenericFeed (GenericFeed {..}) = T.putStrLn $ gfTitle <> " (" <> gfURL <> ")"
