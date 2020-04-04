@@ -53,8 +53,9 @@ glist p showAll f (l, i) = (f $ toGenericList newL & listSelectedL .~ newId) <&>
     p' = if showAll then const True else p
     h = filter (p' . snd) $ zip [0..] l
     oldId = fromMaybe 0 i -- must be used only if h ≠ []
+    foo (_, x) = if x <= oldId then Left $ oldId - x else Right $ x - oldId
     newId = if null h then Nothing else Just $
-      fst $ minimumBy (comparing $ \(_, x) -> abs (x - oldId)) $ zip [0..] $ map fst h
+      fst $ minimumBy (comparing foo) $ zip [0..] $ map fst h
     newL = map snd h
 
 feedsListState :: Bool -> Lens' (CacheFile, Maybe Int) (L (String, Maybe CacheEntry))
