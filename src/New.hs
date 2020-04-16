@@ -1,4 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RankNTypes #-}
 
 module New where
@@ -8,13 +9,15 @@ import Data.Maybe (fromMaybe, fromJust)
 import Data.List
 import Data.Ord (comparing)
 
+import Data.Functor.Compose (Compose(..))
+
 import Control.Applicative ((<|>))
 import Control.Lens
 import Data.Foldable (Foldable(..))
 
 import GenericFeed
 
-import Brick.Widgets.List
+import Brick.Widgets.List hiding (reverse)
 
 instance Splittable [] where
   splitAt = Data.List.splitAt
@@ -25,22 +28,35 @@ type L e = MyList () e
 newListState :: Maybe Int -> [a] -> L a
 newListState idx x = list () x 1 & listSelectedL .~ idx
 
-data Zipper a = ZEmpty
-              | Zip [a] a [a]
+data Zipper a = Zipper [a] a [a]
+
+focus :: Lens' (Zipper a) a
+focus f (Zipper before x after) = (\y -> Zipper before y after) <$> f x
+
+type MZipper a = Compose Maybe Zipper a
+
+compose :: Lens' (Compose a b c) (a (b c))
+compose f (Compose x) = Compose <$> f x
+
+mFocus :: Traversal' (MZipper a) a
+mFocus = compose . _Just . focus
+
+mZEmpty :: MZipper a
+mZEmpty = Compose Nothing
+
+mZipper :: Zipper a -> MZipper a
+mZipper = Compose . Just
 
 zipLeft :: Zipper a -> Zipper a
-zipLeft ZEmpty = ZEmpty
-zipLeft (Zip [] x r) = Zip [] x r
-zipLeft (Zip (x':l) x r) = Zip l x' (x:r)
+zipLeft (Zipper [] x r) = Zipper [] x r
+zipLeft (Zipper (x':l) x r) = Zipper l x' (x:r)
 
 zipRight :: Zipper a -> Zipper a
-zipRight ZEmpty = ZEmpty
-zipRight (Zip l x []) = Zip l x []
-zipRight (Zip l x (x':r)) = Zip (x:l) x' r
+zipRight (Zipper l x []) = Zipper l x []
+zipRight (Zipper l x (x':r)) = Zipper (x:l) x' r
 
 zipSetIndex :: Int -> Zipper a -> Zipper a
-zipSetIndex _ ZEmpty = ZEmpty
-zipSetIndex idx z@(Zip l _ _) = case compare idx le of
+zipSetIndex idx z@(Zipper l _ _) = case compare idx le of
     LT -> repeatN (le - idx) zipLeft z
     EQ -> z
     GT -> repeatN (idx - le) zipRight z
@@ -50,32 +66,46 @@ zipSetIndex idx z@(Zip l _ _) = case compare idx le of
     repeatN i f a = repeatN (pred i) f $ f a
 
 instance Foldable Zipper where
-  foldr f a ZEmpty = foldr f a []
-  foldr f a (Zip l x r) = foldr f a $ Prelude.reverse l ++ x : r
+  foldr f a (Zipper l x r) = foldr f a $ Prelude.reverse l ++ x : r
 
-fromList :: [a] -> Zipper a
-fromList [] = ZEmpty
-fromList (x:xs) = Zip [] x xs
+instance Functor Zipper where
+  fmap f (Zipper bef x aft) = Zipper (f <$> bef) (f x) (f <$> aft)
+
+instance Traversable Zipper where
+  traverse f (Zipper bef x aft) = Zipper <$> traverse f (reverse bef) <*> f x <*> traverse f aft
+
+fromList :: [a] -> MZipper a
+fromList [] = mZEmpty
+fromList (x:xs) = mZipper $ Zipper [] x xs
 
 -- TODO: all the instances and functions on Zipper
 
 data LevelItems = LevelItems
-  { liBefore :: [(FilePath, Maybe CacheEntry)]
-  , liAfter :: [(FilePath, Maybe CacheEntry)]
-  , liUrl :: FilePath
-  , liFeed :: GenericFeed
-  , liItems :: Zipper (GenericItem, ItemStatus)
+  { _liBefore :: [(FilePath, Maybe CacheEntry)]
+  , _liAfter :: [(FilePath, Maybe CacheEntry)]
+  , _liUrl :: FilePath
+  , _liFeed :: GenericFeed
+  , _liItems :: MZipper (GenericItem, ItemStatus)
   }
 
-data MenuState = MenuFeeds (Zipper (FilePath, Maybe CacheEntry))
+makeLenses ''LevelItems
+
+data MenuState = MenuFeeds (MZipper (FilePath, Maybe CacheEntry))
                | MenuItems Bool       -- Is the selected item open?
                            LevelItems -- The Zipper state
 
 -- Go one level up in the menu
 menuUp :: MenuState -> MenuState
 menuUp (MenuFeeds x) = MenuFeeds x
-menuUp (MenuItems False (LevelItems {..})) = MenuFeeds $ Zip liBefore (liUrl, Just (liFeed, toList liItems)) liAfter
+menuUp (MenuItems False (LevelItems {..})) = MenuFeeds $ mZipper $ Zipper _liBefore (_liUrl, Just (_liFeed, toList _liItems)) _liAfter
 menuUp (MenuItems True x) = MenuItems False x
+
+-- Go one level down in the menu
+menuDown :: MenuState -> MenuState
+menuDown x@(MenuFeeds (Compose Nothing)) = x
+menuDown x@(MenuFeeds (Compose (Just (Zipper _ (_, Nothing) _)))) = x
+menuDown (MenuFeeds (Compose (Just (Zipper bef (url, Just (feed, is)) aft)))) = MenuItems False $ LevelItems bef aft url feed $ fromList is
+menuDown (MenuItems _ is) = MenuItems True is
 
 menuFromCache :: CacheFile -> MenuState
 menuFromCache = MenuFeeds . fromList
@@ -86,9 +116,9 @@ menuToCache s = case menuUp $ menuUp s of
   _ -> error "`menuUp . menuUp` didn't lift to top level menu"
 
 -- Inside each zipper there is a list with index
-listState :: Lens' (Zipper a) (L a)
-listState f ZEmpty = const ZEmpty <$> f (newListState Nothing [])
-listState f z@(Zip l _ _) = fmap foo $ f $ newListState (Just idx) (toList z)
+listState :: Lens' (MZipper a) (L a)
+listState f (Compose Nothing) = const (Compose Nothing) <$> f (newListState Nothing [])
+listState f (Compose (Just z@(Zipper l _ _))) = fmap (mZipper . foo) $ f $ newListState (Just idx) (toList z)
   where
     idx = length l
     foo st = zipSetIndex (fromMaybe idx $ st ^. listSelectedL) z

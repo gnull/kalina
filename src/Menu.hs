@@ -4,30 +4,15 @@
 
 module Menu where
 
-import Data.Maybe
-import Data.List
-import Data.Ord (comparing)
 import Data.Text () -- Instances
 
 import Control.Lens
 
 import GenericFeed
 
-import Brick.Widgets.List
+import New
 
-instance Splittable [] where
-  splitAt = Data.List.splitAt
-
-type MyList n e = GenericList n [] e
-type L e = MyList () e
-
-data MenuState -- The parameters are indices of selected items
-  = LevelFeeds    (Maybe Int)
-  | LevelItems    Int Int
-  | LevelContents Int Int
-
-data State = State { _innerState :: CacheFile
-                   , _menuState :: MenuState
+data State = State { _menuState :: MenuState
                    , _showUnreadFeeds :: Bool
                    , _showUnreadItems :: Bool
                    , _displayHelp :: Bool
@@ -35,94 +20,27 @@ data State = State { _innerState :: CacheFile
 
 makeLenses ''State
 
-toGenericList :: [a] -> L a
-toGenericList x = list () x 1
+-- A lens which looks at all the items of the currently selected feed
+selectedFeedItems :: Traversal' MenuState (GenericItem, ItemStatus)
+selectedFeedItems f (MenuFeeds z) = MenuFeeds <$> (mFocus . _2 . _Just . _2 . traverse) f z
+selectedFeedItems f (MenuItems b is) = MenuItems b <$> (liItems . traverse) f is
 
--- This lens allows one to "look into" the generic list represented by a pair of
--- list and an index. All the changes made to the generic list are reflected in
--- the pair.
-glist :: (a -> Bool) -> Bool -> Lens' ([a], Maybe Int) (L a)
-glist p showAll f (l, i) = (f $ toGenericList newL & listSelectedL .~ newId) <&> \gl ->
-    if null h then
-      (l, Nothing)
-    else let
-        i' = fromMaybe 0 $ gl ^. listSelectedL
-        i'' = fst $ h !! i'
-      in (l, Just i'')
-  where
-    p' = if showAll then const True else p
-    h = filter (p' . snd) $ zip [0..] l
-    oldId = fromMaybe 0 i -- must be used only if h ≠ []
-    foo (_, x) = if x <= oldId then Left $ oldId - x else Right $ x - oldId
-    newId = if null h then Nothing else Just $
-      fst $ minimumBy (comparing foo) $ zip [0..] $ map fst h
-    newL = map snd h
+-- This is similar to the previous one, but looks at only one selected item (if
+-- one is selected).
+selectedItem :: Traversal' MenuState (GenericItem, ItemStatus)
+selectedItem _ (MenuFeeds z) = pure $ MenuFeeds z
+selectedItem f (MenuItems b is) = MenuItems b <$> (liItems . mFocus) f is
 
-feedsListState :: Bool -> Lens' (CacheFile, Maybe Int) (L (String, Maybe CacheEntry))
-feedsListState = glist $ \(_, x) -> case x of
-  Nothing -> False
-  Just (_, l) -> any (not . snd) l
+type Getting' s a = Getting a s a
 
-itemsListState :: Bool -> Lens' ([(GenericItem, ItemStatus)], Maybe Int) (L (GenericItem, ItemStatus))
-itemsListState = glist $ not . snd
-
-listLens :: Int -> Lens' [a] a
-listLens i f l = f x <&> \x' -> l1 ++ x' : l2
-  where
-    (l1, x:l2) = Data.List.splitAt i l
-
-selectedFeed :: Traversal' State (String, Maybe (GenericFeed, [(GenericItem, ItemStatus)]))
-selectedFeed f s = case s ^. menuState of
-  LevelFeeds Nothing -> pure s
-  LevelFeeds (Just i) -> innerState (listLens i f) s
-  LevelItems    i _ -> innerState (listLens i f) s
-  LevelContents i _ -> innerState (listLens i f) s
-
-itemsOfFeed :: Traversal' (String, Maybe (GenericFeed, [(GenericItem, ItemStatus)])) [(GenericItem, ItemStatus)]
-itemsOfFeed = _2 . _Just . _2
-
--- The item which is currently selected in the items menu (or open in the contents menu)
-selectedItem :: Traversal' State (GenericItem, ItemStatus)
-selectedItem f s = case s ^. menuState of
-    LevelFeeds _ -> pure s
-    LevelItems _ ii -> helper ii
-    LevelContents _ ii -> helper ii
-  where
-    helper ii = let
-        foo (u, Just (feed, items)) = listLens ii f items <&> \items' -> (u, Just (feed, items'))
-        foo (_, Nothing) = error "Index ii points into a non-existent list"
-      in selectedFeed foo s
-
--- As selectedItem, but works only if the item is open in the contents menu
-activeItem :: Traversal' State (GenericItem, ItemStatus)
-activeItem f s = case s ^. menuState of
-  LevelContents _ _ -> selectedItem f s
-  _ -> pure s
+allFeeds :: Getting' MenuState (MZipper (FilePath, Maybe CacheEntry))
+allFeeds f s = case menuUp $ menuUp s of
+  MenuFeeds x -> Const $ getConst $ f x
+  _ -> undefined
 
 initialState :: CacheFile -> State
-initialState c = State { _innerState = c
-                       , _menuState = LevelFeeds $ if null c then Nothing else Just 0
+initialState c = State { _menuState = menuFromCache c
                        , _showUnreadFeeds = True
                        , _showUnreadItems = True
                        , _displayHelp = False
                        }
-
--- TODO: Make these two functions work with State instead of MenuState
-
-stateDown :: State -> State
-stateDown s = case s ^. menuState of
-  LevelFeeds Nothing -> s
-  LevelFeeds (Just i) -> fromMaybe s $ do
-    (_, gf) <- s ^? selectedFeed
-    (_, is) <- gf
-    _ <- listToMaybe is
-    pure $ s & menuState .~ LevelItems i 0
-  LevelItems i j -> s & menuState .~ LevelContents i j
-  LevelContents _ _ -> s
-
-stateUp :: State -> State
-stateUp st = over menuState f st
-  where
-    f s@(LevelFeeds _) = s
-    f (LevelItems fs _) = LevelFeeds (Just fs)
-    f (LevelContents fs is) = LevelItems fs is
