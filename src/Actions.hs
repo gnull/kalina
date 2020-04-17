@@ -37,11 +37,14 @@ preservingResult f x = const x <$> f x
 
 enter :: Action
 enter st = continue
-  $ over (menuState . selectedItem) (second $ const True)
-  $ over menuState menuDown st
+  -- the order of two "over"s here is important
+  $ over menuState menuDown
+  $ over (menuState . selectedItem) (second $ const True) st
 
 back :: Action
-back st = continue $ over menuState menuUp st
+back st = case st ^. menuState of
+  MenuFeeds _ -> halt st
+  _ -> continue $ over menuState menuUp st
 
 fetchOne :: (FilePath -> IO ()) -> Action
 fetchOne queue s = (mFocus . _1 . preservingResult) (liftIO . queue) (s ^. menuState ^. allFeeds) >> continue s
