@@ -82,8 +82,8 @@ drawMenu s =
       helpWidget
     else
       case s ^. menuState of
-        MenuFeeds z -> g $ renderList renderFeed True $ z ^. listState . listStateFilter (feedsFilterPredicate s)
-        MenuItems False is -> g $ renderList renderItem True $ is ^. liItems ^. listState ^. listStateFilter (itemsFilterPredicate s)
+        MenuFeeds z -> g $ renderList renderFeed True $ z ^. listState . listStateFilter (feedsFilterPredicate $ s ^. menuPrefs)
+        MenuItems False is -> g $ renderList renderItem True $ is ^. liItems ^. listState ^. listStateFilter (itemsFilterPredicate $ s ^. menuPrefs)
         -- TODO: maybe I should split the True and False versions of MenuItems into different constructors to get
         -- rid of the fromJust on the next line. The True option must always have a non-empty zipper.
         MenuItems True is -> f $ padBottom Max $ renderContents $ fromJust $ is ^? (liItems . mFocus . _1)
@@ -119,6 +119,6 @@ handleMenu _ st (EvKey (KChar '?') _) = toggleHelp st
 handleMenu _ st e = continue =<< menuState f st
   where
     f s = case s of
-      MenuFeeds z -> MenuFeeds <$> (listState . listStateFilter (feedsFilterPredicate st)) (handleListEventVi handleListEvent e) z
-      MenuItems False i -> MenuItems False <$> (liItems . listState . listStateFilter (itemsFilterPredicate st)) (handleListEventVi handleListEvent e) i
+      MenuFeeds z -> MenuFeeds <$> (listState . listStateFilter (feedsFilterPredicate $ st ^. menuPrefs)) (handleListEventVi handleListEvent e) z
+      MenuItems False i -> MenuItems False <$> (liItems . listState . listStateFilter (itemsFilterPredicate $ st ^. menuPrefs)) (handleListEventVi handleListEvent e) i
       x@(MenuItems True _) -> pure x
