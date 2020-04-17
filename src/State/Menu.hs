@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RankNTypes #-}
 
-module New where
+module State.Menu where
 
 import Data.List (splitAt)
 import Data.Maybe (fromMaybe, fromJust)

@@ -20,8 +20,8 @@ import qualified Graphics.Vty as V
 
 import Options.Applicative hiding (str)
 
-import New
-import Menu
+import State
+import State.Menu
 import Interface
 
 import Concurrency (workerThread, WorkerEvent, handleThreadEvent)

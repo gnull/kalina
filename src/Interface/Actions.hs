@@ -1,4 +1,4 @@
-module Actions
+module Interface.Actions
   ( Action
   , enter
   , back
@@ -19,10 +19,10 @@ import Data.Text (unpack)
 import System.Process (rawSystem)
 
 import Brick
-import Menu
-import GenericFeed
 
-import New
+import State
+import State.Menu
+import GenericFeed
 
 type Action = State -> EventM () (Next State)
 

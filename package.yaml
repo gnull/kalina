@@ -36,11 +36,11 @@ library:
   source-dirs: src
   exposed-modules:
   - GenericFeed
-  - Menu
+  - State
+  - State.Menu
   - Concurrency
   - Interface
-  - Actions
-  - New
+  - Interface.Actions
 
 executables:
   news-view:

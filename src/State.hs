@@ -2,7 +2,7 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Menu where
+module State where
 
 import Data.Text () -- Instances
 
@@ -10,7 +10,7 @@ import Control.Lens
 
 import GenericFeed
 
-import New
+import State.Menu
 
 data Preferences = Preferences
   { _showUnreadFeeds :: Bool

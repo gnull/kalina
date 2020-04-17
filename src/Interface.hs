@@ -20,9 +20,9 @@ import Graphics.Vty.Input.Events
 
 import Text.Pandoc (runPure, writePlain, readHtml, def)
 
-import New
-import Menu
-import Actions
+import State.Menu
+import State
+import Interface.Actions
 
 renderContents :: GenericItem -> Widget ()
 renderContents (GenericItem {..}) =

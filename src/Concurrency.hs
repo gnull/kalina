@@ -14,7 +14,7 @@ import Control.Lens ((^.))
 import Text.Feed.Import
 
 import GenericFeed
-import New
+import State.Menu
 
 fetchFeed :: FilePath -> IO (Maybe (GenericFeed, [GenericItem]))
 fetchFeed u = do
