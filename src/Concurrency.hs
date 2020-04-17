@@ -14,6 +14,7 @@ import Control.Lens ((^.))
 import Text.Feed.Import
 
 import GenericFeed
+import New
 
 fetchFeed :: FilePath -> IO (Maybe (GenericFeed, [GenericItem]))
 fetchFeed u = do
@@ -36,12 +37,6 @@ workerThread from to = sequence_ $ repeat $ do
   r <- catchAny (maybe (Failed u) (Finished u) <$> fetchFeed u) $ \_ -> pure (Failed u)
   writeBChan to r
 
-patch :: (GenericFeed, [GenericItem]) -> Maybe CacheEntry -> Maybe CacheEntry
-patch (f, is) Nothing = Just $ newCacheEntry f is
-patch (f, is) (Just (_, is')) = Just (f, goodIs ++ is')
-  where goodIs = map (,False) $ foldr Data.List.delete is $ map fst is'
-
-handleThreadEvent :: CacheFile -> WorkerEvent -> CacheFile
-handleThreadEvent s (Finished u f) = map g s
-  where g (u', f') = (u', if u' == u then patch f f' else f')
-handleThreadEvent s _ = s -- this is ignored for now, but in future i'll use it for progress bar
+handleThreadEvent :: WorkerEvent -> MenuState -> MenuState
+handleThreadEvent (Finished u f) s = appendNewItems u f s
+handleThreadEvent _ s = s -- this is ignored for now, but in future i'll use it for progress bar

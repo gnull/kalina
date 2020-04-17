@@ -20,6 +20,7 @@ import Graphics.Vty.Input.Events
 
 import Text.Pandoc (runPure, writePlain, readHtml, def)
 
+import New
 import Menu
 import Actions
 
@@ -81,11 +82,11 @@ drawMenu s =
       helpWidget
     else
       case s ^. menuState of
-        LevelFeeds fi -> g $ renderList renderFeed True $ (s ^. innerState, fi) ^. feedsListState (s ^. showUnreadFeeds)
-        LevelItems _ is
-          -> g $ renderList renderItem True
-               $ (fromJust $ s ^? selectedFeed . itemsOfFeed, Just is) ^. itemsListState (s ^. showUnreadItems)
-        LevelContents _ _ -> f $ padBottom Max $ renderContents $ fromJust $ s ^? (selectedItem . _1)
+        MenuFeeds z -> g $ renderList renderFeed True $ z ^. listState . listStateFilter (feedsFilterPredicate s)
+        MenuItems False is -> g $ renderList renderItem True $ is ^. liItems ^. listState ^. listStateFilter (itemsFilterPredicate s)
+        -- TODO: maybe I should split the True and False versions of MenuItems into different constructors to get
+        -- rid of the fromJust on the next line. The True option must always have a non-empty zipper.
+        MenuItems True is -> f $ padBottom Max $ renderContents $ fromJust $ is ^? (liItems . mFocus . _1)
   where
     f x = vBox
       [ withAttr "title" $ padRight Max $ str "Title"
@@ -108,23 +109,16 @@ handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
 handleMenu _ st@(State {_displayHelp = True}) (EvKey _ _) = toggleHelp st
 handleMenu queue st (EvKey (KChar 'r') _) = fetchOne queue st
 handleMenu queue st (EvKey (KChar 'R') _) = fetchAll queue st
-handleMenu _ st (EvKey (KChar 'q') _) = back st
-handleMenu _ st (EvKey KEnter _) = enter st
-handleMenu _ st (EvKey (KChar 'l') _) = toggleShowRead st
-handleMenu _ st (EvKey (KChar 'A') _) = markAsRead st
-handleMenu _ st (EvKey (KChar 'o') _) = openCurrentUrl st
+handleMenu _ st (EvKey (KChar 'q') _) = fmap touchListIdex <$> back st
+handleMenu _ st (EvKey KEnter _) = fmap touchListIdex <$> enter st
+handleMenu _ st (EvKey (KChar 'l') _) = fmap touchListIdex <$> toggleShowRead st
+handleMenu _ st (EvKey (KChar 'A') _) = fmap touchListIdex <$> markAsRead st
+handleMenu _ st (EvKey (KChar 'o') _) = fmap touchListIdex <$> openCurrentUrl st
 handleMenu _ st (EvKey (KChar '?') _) = toggleHelp st
 -- We let the list widget handle all the other keys
-handleMenu _ st e = continue =<< fmap (\y -> set' menuState y st) x
+handleMenu _ st e = continue =<< menuState f st
   where
-    s = st ^. menuState
-    x = case s of
-      LevelFeeds fs -> do
-        (_, fs') <- feedsListState (st ^. showUnreadFeeds) (handleListEventVi handleListEvent e) (st ^. innerState, fs)
-        pure $ LevelFeeds fs'
-      LevelItems fs is -> do
-        v <- itemsListState (st ^. showUnreadItems) (handleListEventVi handleListEvent e) (fromJust $ st ^? selectedFeed . itemsOfFeed, Just is)
-        case v of
-          (_, Just is') -> pure $ LevelItems fs is'
-          (_, Nothing) -> pure $ LevelItems fs is
-      LevelContents _ _ -> pure s
+    f s = case s of
+      MenuFeeds z -> MenuFeeds <$> (listState . listStateFilter (feedsFilterPredicate st)) (handleListEventVi handleListEvent e) z
+      MenuItems False i -> MenuItems False <$> (liItems . listState . listStateFilter (itemsFilterPredicate st)) (handleListEventVi handleListEvent e) i
+      x@(MenuItems True _) -> pure x
