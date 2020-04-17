@@ -15,13 +15,13 @@ import New
 data Preferences = Preferences
   { _showUnreadFeeds :: Bool
   , _showUnreadItems :: Bool
-  , _displayHelp :: Bool
   }
 
 makeLenses ''Preferences
 
 data State = State { _menuState :: MenuState
                    , _menuPrefs :: Preferences
+                   , _displayHelp :: Bool
                    }
 
 makeLenses ''State
@@ -32,8 +32,8 @@ initialState c = State
   , _menuPrefs = Preferences
     { _showUnreadFeeds = True
     , _showUnreadItems = True
-    , _displayHelp = False
     }
+  , _displayHelp = False
   }
 
 feedsFilterPredicate :: Preferences -> (String, Maybe CacheEntry) -> Bool

@@ -72,7 +72,7 @@ toggleShowRead st = continue $ case st ^. menuState of
 --     LevelContents _ _ -> st
 
 toggleHelp :: Action
-toggleHelp st = continue $ over (menuPrefs . displayHelp) not st
+toggleHelp st = continue $ over displayHelp not st
 
 markAsRead :: Action
 markAsRead st = continue $ over (menuState . selectedFeedItems) (second $ const True) st
