@@ -78,7 +78,7 @@ helpWidget = vBox
 
 drawMenu :: State -> Widget ()
 drawMenu s =
-    if s ^. displayHelp then
+    if s ^. menuPrefs . displayHelp then
       helpWidget
     else
       case s ^. menuState of
@@ -106,7 +106,7 @@ draw :: State -> [Widget ()]
 draw s = [drawMenu s]
 
 handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
-handleMenu _ st@(State {_displayHelp = True}) (EvKey _ _) = toggleHelp st
+handleMenu _ st@(State {_menuPrefs = Preferences {_displayHelp = True}}) (EvKey _ _) = toggleHelp st
 handleMenu queue st (EvKey (KChar 'r') _) = fetchOne queue st
 handleMenu queue st (EvKey (KChar 'R') _) = fetchAll queue st
 handleMenu _ st (EvKey (KChar 'q') _) = fmap touchListIdex <$> back st
