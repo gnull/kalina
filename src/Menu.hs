@@ -53,3 +53,11 @@ feedsFilterPredicate _ (_, Just (_, is)) = any (not . snd) is
 itemsFilterPredicate :: State -> (GenericItem, ItemStatus) -> Bool
 itemsFilterPredicate (State {_showUnreadItems = True}) _ = True
 itemsFilterPredicate _ (_, r) = not r
+
+-- This function updates (if needed) the menu list indices, depending on the
+-- current filtering settings.
+touchListIdex :: State -> State
+touchListIdex s = case s ^. menuState of
+  MenuFeeds z -> set menuState (MenuFeeds $ over (listState . listStateFilter (feedsFilterPredicate s)) id z) s
+  MenuItems False i -> set menuState (MenuItems False $ over (liItems . listState . listStateFilter (itemsFilterPredicate s)) id i) s
+  _ -> s

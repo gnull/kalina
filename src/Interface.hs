@@ -109,11 +109,11 @@ handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
 handleMenu _ st@(State {_displayHelp = True}) (EvKey _ _) = toggleHelp st
 handleMenu queue st (EvKey (KChar 'r') _) = fetchOne queue st
 handleMenu queue st (EvKey (KChar 'R') _) = fetchAll queue st
-handleMenu _ st (EvKey (KChar 'q') _) = back st
-handleMenu _ st (EvKey KEnter _) = enter st
-handleMenu _ st (EvKey (KChar 'l') _) = toggleShowRead st
-handleMenu _ st (EvKey (KChar 'A') _) = markAsRead st
-handleMenu _ st (EvKey (KChar 'o') _) = openCurrentUrl st
+handleMenu _ st (EvKey (KChar 'q') _) = fmap touchListIdex <$> back st
+handleMenu _ st (EvKey KEnter _) = fmap touchListIdex <$> enter st
+handleMenu _ st (EvKey (KChar 'l') _) = fmap touchListIdex <$> toggleShowRead st
+handleMenu _ st (EvKey (KChar 'A') _) = fmap touchListIdex <$> markAsRead st
+handleMenu _ st (EvKey (KChar 'o') _) = fmap touchListIdex <$> openCurrentUrl st
 handleMenu _ st (EvKey (KChar '?') _) = toggleHelp st
 -- We let the list widget handle all the other keys
 handleMenu _ st e = continue =<< menuState f st
