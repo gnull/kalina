@@ -78,6 +78,10 @@ fromList :: [a] -> MZipper a
 fromList [] = mZEmpty
 fromList (x:xs) = mZipper $ Zipper [] x xs
 
+appendList :: [a] -> MZipper a -> MZipper a
+appendList l (Compose Nothing) = fromList l
+appendList l (Compose (Just (Zipper bef x aft))) = mZipper $ Zipper (bef ++ reverse l) x aft
+
 data LevelItems = LevelItems
   { _liBefore :: [(FilePath, Maybe CacheEntry)]
   , _liAfter :: [(FilePath, Maybe CacheEntry)]
@@ -137,5 +141,35 @@ listStateFilter p f st = fmap g $ f $ newListState idx' l'
     g st' = let origIx = fmap (\i -> fst $ h !! i) (st' ^. listSelectedL) <|> ixMaybe
              in newListState origIx l
 
+-- I'm 60% sure there should be a library function which does this. I should
+-- check this
+lensPair :: Lens' s a -> Lens' s b -> Lens' s (a, b)
+lensPair la lb f s = f (a, b) <&> \(a', b') -> set la a' $ set lb b' s
+  where
+    a = s ^. la
+    b = s ^. lb
+
+-- TODO: This function is quite ugly, some code is duplicated. There should be
+-- some simpler and shorter way to do this.
 appendNewItems :: FilePath -> (GenericFeed, [GenericItem]) -> MenuState -> MenuState
-appendNewItems = undefined
+appendNewItems u (f, is) s = case s of
+    MenuFeeds z -> MenuFeeds $ fmap patchMaybe z
+    MenuItems b i -> MenuItems b
+      $ over liBefore (fmap patchMaybe)
+      $ over liAfter (fmap patchMaybe)
+      $ over (lensPair liUrl $ lensPair liFeed liItems) patch i
+  where
+    remaining :: [GenericItem] -> [GenericItem] -> [GenericItem]
+    remaining new old = filter (not . flip elem old) new
+
+    patchMaybe :: (FilePath, Maybe (GenericFeed, [(GenericItem, ItemStatus)]))
+               -> (FilePath, Maybe (GenericFeed, [(GenericItem, ItemStatus)]))
+    patchMaybe (u', x) = if u' /= u then (u', x)
+      else case x of
+        Nothing -> (u', Just (f, zip is $ repeat False))
+        Just (_, is') -> (u', Just (f, zip (remaining is $ map fst is') (repeat False) ++ is'))
+
+    patch :: (FilePath, (GenericFeed, MZipper (GenericItem, ItemStatus)))
+          -> (FilePath, (GenericFeed, MZipper (GenericItem, ItemStatus)))
+    patch (u', (f', z)) = if u' /= u then (u', (f', z))
+      else (u', (f, appendList (zip (remaining is $ map fst $ toList z) $ repeat False) z))
