@@ -78,8 +78,6 @@ fromList :: [a] -> MZipper a
 fromList [] = mZEmpty
 fromList (x:xs) = mZipper $ Zipper [] x xs
 
--- TODO: all the instances and functions on Zipper
-
 data LevelItems = LevelItems
   { _liBefore :: [(FilePath, Maybe CacheEntry)]
   , _liAfter :: [(FilePath, Maybe CacheEntry)]
@@ -138,3 +136,6 @@ listStateFilter p f st = fmap g $ f $ newListState idx' l'
       fst $ minimumBy (comparing foo) $ zip [0..] $ map fst h
     g st' = let origIx = fmap (\i -> fst $ h !! i) (st' ^. listSelectedL) <|> ixMaybe
              in newListState origIx l
+
+appendNewItems :: FilePath -> (GenericFeed, [GenericItem]) -> MenuState -> MenuState
+appendNewItems = undefined

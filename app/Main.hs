@@ -9,7 +9,7 @@ import System.Directory (getHomeDirectory)
 import System.FilePath ((</>))
 import Data.Text () -- Instances
 
-import Control.Lens ((^.), (&), (.~))
+import Control.Lens ((^.), over)
 
 import GenericFeed
 
@@ -20,6 +20,7 @@ import qualified Graphics.Vty as V
 
 import Options.Applicative hiding (str)
 
+import New
 import Menu
 import Interface
 
@@ -27,13 +28,11 @@ import Concurrency (workerThread, WorkerEvent, handleThreadEvent)
 import Control.Concurrent.Async (async, cancel)
 
 cacheFromState :: State -> CacheFile
-cacheFromState = _innerState
+cacheFromState s = menuToCache $ s ^. menuState
 
 handle :: (FilePath -> IO ()) -> State -> BrickEvent () WorkerEvent -> EventM () (Next State)
 handle queue s (VtyEvent e) = handleMenu queue s e
-handle _ st (AppEvent e) = continue $ st & innerState .~ c'
-  where
-    c' = handleThreadEvent (st ^. innerState) e
+handle _ st (AppEvent e) = continue $ over menuState (handleThreadEvent e) st
 handle _ s _ = continue s
 
 theMap :: AttrMap
