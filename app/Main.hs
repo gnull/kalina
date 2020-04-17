@@ -9,7 +9,7 @@ import System.Directory (getHomeDirectory)
 import System.FilePath ((</>))
 import Data.Text () -- Instances
 
-import Control.Lens ((^.), over)
+import Control.Lens ((^.))
 
 import GenericFeed
 
@@ -32,7 +32,7 @@ cacheFromState s = menuToCache $ s ^. menuState
 
 handle :: (FilePath -> IO ()) -> State -> BrickEvent () WorkerEvent -> EventM () (Next State)
 handle queue s (VtyEvent e) = handleMenu queue s e
-handle _ st (AppEvent e) = continue $ over menuState (handleThreadEvent e) st
+handle _ st (AppEvent e) = continue $ handleThreadEvent e st
 handle _ s _ = continue s
 
 theMap :: AttrMap
@@ -42,6 +42,10 @@ theMap = attrMap V.defAttr
     , ("unread-item",       V.withStyle V.currentAttr V.bold)
     , ("hightlight",        V.withStyle V.currentAttr V.bold)
     , ("title",             V.black `on` V.white)
+    , ("FetchNothing",      V.withForeColor V.currentAttr V.yellow)
+    , ("FetchStarted",      V.withStyle (V.withForeColor V.currentAttr V.yellow) V.blink)
+    , ("FetchFailed",       V.withForeColor V.currentAttr V.red)
+    , ("FetchOK",           V.withForeColor V.currentAttr V.green)
     ]
 
 app :: (FilePath -> IO ()) -> App State WorkerEvent ()

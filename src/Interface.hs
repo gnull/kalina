@@ -20,8 +20,9 @@ import Graphics.Vty.Input.Events
 
 import Text.Pandoc (runPure, writePlain, readHtml, def)
 
-import State.Menu
 import State
+import State.Menu
+import State.Fetch
 import Interface.Actions
 
 renderContents :: GenericItem -> Widget ()
@@ -47,19 +48,24 @@ renderItem _ (GenericItem {..}, r) = padRight Max $ markup
    <> "  "
    <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle)
 
-renderFeed :: Bool -> (String, Maybe CacheEntry) -> Widget ()
-renderFeed _ f = (txt " × ")
+renderFeed :: FetchState -> Bool -> (String, Maybe CacheEntry) -> Widget ()
+renderFeed fs _ (u, f) = statusIcon
               <+> (hLimit 7 $ padRight Max $ markup $ unreadCount @? readStatus)
               <+> vLimit 1 vBorder
               <+> (padRight Max $ markup $ (" " <> caption) @? readStatus)
   where
     (unread, total, caption) = case f of
-      (_, Just (gf, is)) -> ( length $ filter (not . snd) is
-                            , length is
-                            , gfTitle gf <> " (" <> gfURL gf <> ")")
-      (u, Nothing) -> (0, 0, T.pack u)
+      Just (gf, is) -> ( length $ filter (not . snd) is
+                       , length is
+                       , gfTitle gf <> " (" <> gfURL gf <> ")")
+      Nothing -> (0, 0, T.pack u)
     readStatus = if unread == 0 then "read-item" else "unread-item"
     unreadCount = T.pack $ show unread <> "/" <> show total
+    statusIcon = markup $ case fetchLookup u fs of
+      FetchNothing -> " ? " @? "FetchNothing"
+      FetchStarted -> " ● " @? "FetchStarted"
+      FetchFailed -> " × " @? "FetchFailed"
+      FetchOK -> " ● " @? "FetchOK"
 
 helpWidget :: Widget ()
 helpWidget = vBox
@@ -82,7 +88,7 @@ drawMenu s =
       helpWidget
     else
       case s ^. menuState of
-        MenuFeeds z -> g $ renderList renderFeed True $ z ^. listState . listStateFilter (feedsFilterPredicate $ s ^. menuPrefs)
+        MenuFeeds z -> g $ renderList (renderFeed $ s ^. fetchState) True $ z ^. listState . listStateFilter (feedsFilterPredicate $ s ^. menuPrefs)
         MenuItems False is -> g $ renderList renderItem True $ is ^. liItems ^. listState ^. listStateFilter (itemsFilterPredicate $ s ^. menuPrefs)
         -- TODO: maybe I should split the True and False versions of MenuItems into different constructors to get
         -- rid of the fromJust on the next line. The True option must always have a non-empty zipper.

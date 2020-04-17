@@ -1,8 +1,8 @@
 {-# LANGUAGE TupleSections #-}
 module Concurrency where
 
-import Data.List (delete)
 import Control.Arrow ((&&&))
+import Control.Lens (over)
 
 import Control.Exception.Safe (catchAny)
 
@@ -14,7 +14,9 @@ import Control.Lens ((^.))
 import Text.Feed.Import
 
 import GenericFeed
+import State
 import State.Menu
+import State.Fetch
 
 fetchFeed :: FilePath -> IO (Maybe (GenericFeed, [GenericItem]))
 fetchFeed u = do
@@ -37,6 +39,7 @@ workerThread from to = sequence_ $ repeat $ do
   r <- catchAny (maybe (Failed u) (Finished u) <$> fetchFeed u) $ \_ -> pure (Failed u)
   writeBChan to r
 
-handleThreadEvent :: WorkerEvent -> MenuState -> MenuState
-handleThreadEvent (Finished u f) s = appendNewItems u f s
-handleThreadEvent _ s = s -- this is ignored for now, but in future i'll use it for progress bar
+handleThreadEvent :: WorkerEvent -> State -> State
+handleThreadEvent (Finished u f) s = over fetchState (fetchUpdate u FetchOK) $ over menuState (appendNewItems u f) s
+handleThreadEvent (Started u) s = over fetchState (fetchUpdate u FetchStarted) s
+handleThreadEvent (Failed u) s = over fetchState (fetchUpdate u FetchFailed) s

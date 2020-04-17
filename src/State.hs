@@ -11,6 +11,7 @@ import Control.Lens
 import GenericFeed
 
 import State.Menu
+import State.Fetch
 
 data Prefs = Prefs
   { _showUnreadFeeds :: Bool
@@ -22,6 +23,7 @@ makeLenses ''Prefs
 data State = State { _menuState :: MenuState
                    , _menuPrefs :: Prefs
                    , _displayHelp :: Bool
+                   , _fetchState :: FetchState
                    }
 
 makeLenses ''State
@@ -34,6 +36,7 @@ initialState c = State
     , _showUnreadItems = True
     }
   , _displayHelp = False
+  , _fetchState = fetchInitial
   }
 
 feedsFilterPredicate :: Prefs -> (String, Maybe CacheEntry) -> Bool
