@@ -104,7 +104,7 @@ main = do
   urls <- parseFeedsConfig <$> readFile oUrls
   feeds <- refreshCacheFileWithUrls urls <$> readCacheFile oCache
   let s = initialState feeds
-  from <- newBChan 20
+  from <- newBChan 100
   to <- newBChan 20
   th <- replicateM 10 $ async $ workerThread from to
   writeCacheFile oCache =<< cacheFromState <$> defaultMain' to (app $ writeBChan from) s
