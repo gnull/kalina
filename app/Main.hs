@@ -42,7 +42,7 @@ theMap = attrMap V.defAttr
     , ("unread-item",       V.withStyle V.currentAttr V.bold)
     , ("hightlight",        V.withStyle V.currentAttr V.bold)
     , ("title",             V.black `on` V.white)
-    , ("FetchNothing",      V.withForeColor V.currentAttr V.yellow)
+    , ("FetchNothing",      V.withStyle V.currentAttr V.dim)
     , ("FetchStarted",      V.withStyle (V.withForeColor V.currentAttr V.yellow) V.blink)
     , ("FetchFailed",       V.withForeColor V.currentAttr V.red)
     , ("FetchOK",           V.withForeColor V.currentAttr V.green)
