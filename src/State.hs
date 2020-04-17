@@ -12,15 +12,15 @@ import GenericFeed
 
 import State.Menu
 
-data Preferences = Preferences
+data Prefs = Prefs
   { _showUnreadFeeds :: Bool
   , _showUnreadItems :: Bool
   }
 
-makeLenses ''Preferences
+makeLenses ''Prefs
 
 data State = State { _menuState :: MenuState
-                   , _menuPrefs :: Preferences
+                   , _menuPrefs :: Prefs
                    , _displayHelp :: Bool
                    }
 
@@ -29,20 +29,20 @@ makeLenses ''State
 initialState :: CacheFile -> State
 initialState c = State
   { _menuState = menuFromCache c
-  , _menuPrefs = Preferences
+  , _menuPrefs = Prefs
     { _showUnreadFeeds = True
     , _showUnreadItems = True
     }
   , _displayHelp = False
   }
 
-feedsFilterPredicate :: Preferences -> (String, Maybe CacheEntry) -> Bool
-feedsFilterPredicate (Preferences {_showUnreadFeeds = True}) _ = True
+feedsFilterPredicate :: Prefs -> (String, Maybe CacheEntry) -> Bool
+feedsFilterPredicate (Prefs {_showUnreadFeeds = True}) _ = True
 feedsFilterPredicate _ (_, Nothing) = False
 feedsFilterPredicate _ (_, Just (_, is)) = any (not . snd) is
 
-itemsFilterPredicate :: Preferences -> (GenericItem, ItemStatus) -> Bool
-itemsFilterPredicate (Preferences {_showUnreadItems = True}) _ = True
+itemsFilterPredicate :: Prefs -> (GenericItem, ItemStatus) -> Bool
+itemsFilterPredicate (Prefs {_showUnreadItems = True}) _ = True
 itemsFilterPredicate _ (_, r) = not r
 
 -- This function updates (if needed) the menu list indices, depending on the
