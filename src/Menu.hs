@@ -44,3 +44,12 @@ initialState c = State { _menuState = menuFromCache c
                        , _showUnreadItems = True
                        , _displayHelp = False
                        }
+
+feedsFilterPredicate :: State -> (String, Maybe CacheEntry) -> Bool
+feedsFilterPredicate (State {_showUnreadFeeds = True}) _ = True
+feedsFilterPredicate _ (_, Nothing) = False
+feedsFilterPredicate _ (_, Just (_, is)) = any (not . snd) is
+
+itemsFilterPredicate :: State -> (GenericItem, ItemStatus) -> Bool
+itemsFilterPredicate (State {_showUnreadItems = True}) _ = True
+itemsFilterPredicate _ (_, r) = not r

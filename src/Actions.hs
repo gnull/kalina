@@ -56,7 +56,14 @@ fetchAll queue s = (traverse . _1) (liftIO . queue) (s ^. menuState ^. allFeeds)
 -- "touches" the list indices — it applies id function to list widget state
 -- through a lens to make sure indexes point to a visible element.
 toggleShowRead :: Action
-toggleShowRead st = undefined
+toggleShowRead st = continue $ case st ^. menuState of
+    MenuFeeds z -> let
+      st' = over showUnreadFeeds not st
+      in set menuState (MenuFeeds $ over (listState . listStateFilter (feedsFilterPredicate st')) id z) st'
+    MenuItems False i -> let
+      st' = over showUnreadItems not st
+      in set menuState (MenuItems False $ over (liItems . listState . listStateFilter (itemsFilterPredicate st')) id i) st'
+    MenuItems True _ -> st
 -- toggleShowRead st = continue $ case st ^. menuState of
 --     LevelFeeds fs -> let
 --         st' = over showUnreadFeeds not st
