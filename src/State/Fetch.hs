@@ -16,6 +16,7 @@ data FetchStatus = FetchOK
                  | FetchStarted
                  | FetchFailed
                  | FetchNothing
+  deriving (Eq)
 
 type FetchState = Map FilePath FetchStatus
 

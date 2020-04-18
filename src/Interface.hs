@@ -112,10 +112,15 @@ helpLine = border $ vLimit 1 $ padRight Max $
 draw :: State -> [Widget ()]
 draw s = [drawMenu s]
 
+queueHelper :: (FilePath -> IO ()) -> FetchState -> FilePath -> IO ()
+queueHelper q s u = if fetchLookup u s == FetchStarted
+  then pure ()
+  else q u
+
 handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
 handleMenu _ st@(State {_displayHelp = True}) (EvKey _ _) = toggleHelp st
-handleMenu queue st (EvKey (KChar 'r') _) = fetchOne queue st
-handleMenu queue st (EvKey (KChar 'R') _) = fetchAll queue st
+handleMenu queue st (EvKey (KChar 'r') _) = fetchOne (queueHelper queue $ st ^. fetchState) st
+handleMenu queue st (EvKey (KChar 'R') _) = fetchAll (queueHelper queue $ st ^. fetchState) st
 handleMenu _ st (EvKey (KChar 'q') _) = back st
 handleMenu _ st (EvKey KEnter _) = fmap touchListIdex <$> enter st
 handleMenu _ st (EvKey (KChar 'l') _) = fmap touchListIdex <$> toggleShowRead st
