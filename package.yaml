@@ -29,7 +29,7 @@ dependencies:
   - process >= 1.6 && < 2
   - pandoc >= 2.3 && < 3
   - containers >= 0.6 && < 1
-  - binary >= 0.10 && < 1
+  - binary >= 0.8 && < 1
 
 ghc-options:
 - -Wall -threaded
