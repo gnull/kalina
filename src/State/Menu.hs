@@ -127,19 +127,22 @@ listState f (Compose (Just z@(Zipper l _ _))) = fmap (mZipper . foo) $ f $ newLi
 
 -- If we have a filter function, we can pretend there's a filtered version of
 -- any list inside it
-listStateFilter :: (a -> Bool) -> Lens' (L a) (L a)
-listStateFilter p f st = fmap g $ f $ newListState idx' l'
+listStateFilter' :: Bool -> (a -> Bool) -> Lens' (L a) (L a)
+listStateFilter' showSelected p f st = fmap g $ f $ newListState idx' l'
   where
     l = st ^. listElementsL
     ixMaybe = st ^. listSelectedL -- This should be used only when h ≠ []
     idx = fromJust ixMaybe
-    h = filter (p . snd) $ zip [0..] l
+    h = filter (\(i, x) -> (i == idx && showSelected) || p x) $ zip [0..] l
     l' = map snd h
     foo (_, x) = if x <= idx then Left $ idx - x else Right $ x - idx
     idx' = if null h then Nothing else Just $
       fst $ minimumBy (comparing foo) $ zip [0..] $ map fst h
     g st' = let origIx = fmap (\i -> fst $ h !! i) (st' ^. listSelectedL) <|> ixMaybe
              in newListState origIx l
+
+listStateFilter :: (a -> Bool) -> Lens' (L a) (L a)
+listStateFilter = listStateFilter' True
 
 -- A lens which looks at all the items of the currently selected feed
 selectedFeedItems :: Traversal' MenuState (GenericItem, ItemStatus)

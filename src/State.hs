@@ -52,6 +52,6 @@ itemsFilterPredicate _ (_, r) = not r
 -- current filtering settings.
 touchListIdex :: State -> State
 touchListIdex s = case s ^. menuState of
-  MenuFeeds z -> set menuState (MenuFeeds $ over (listState . listStateFilter (feedsFilterPredicate $ s ^. menuPrefs)) id z) s
-  MenuItems False i -> set menuState (MenuItems False $ over (liItems . listState . listStateFilter (itemsFilterPredicate $ s ^. menuPrefs)) id i) s
+  MenuFeeds z -> set menuState (MenuFeeds $ over (listState . listStateFilter' False (feedsFilterPredicate $ s ^. menuPrefs)) id z) s
+  MenuItems False i -> set menuState (MenuItems False $ over (liItems . listState . listStateFilter' False (itemsFilterPredicate $ s ^. menuPrefs)) id i) s
   _ -> s
