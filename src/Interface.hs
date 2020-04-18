@@ -63,7 +63,7 @@ renderFeed fs _ (u, f) = statusIcon
     unreadCount = T.pack $ show unread <> "/" <> show total
     statusIcon = markup $ case fetchLookup u fs of
       FetchNothing -> " ? " @? "FetchNothing"
-      FetchStarted -> " ● " @? "FetchStarted"
+      FetchStarted -> " ○ " @? "FetchStarted"
       FetchFailed -> " × " @? "FetchFailed"
       FetchOK -> " ● " @? "FetchOK"
 
