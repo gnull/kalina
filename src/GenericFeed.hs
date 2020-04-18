@@ -1,19 +1,22 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 
 module GenericFeed where
 
-import Control.Exception (try)
 import Control.Arrow ((&&&))
-import Control.Monad (join, (>=>))
+import Control.Monad (join)
 
 import Control.Lens
 
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
+
+import GHC.Generics (Generic)
+import Data.Binary (Binary) -- only to derive instances here
 
 import Text.Feed.Types
 import qualified Text.Atom.Feed as A
@@ -27,7 +30,8 @@ data GenericItem = GenericItem
                          -- Also, newsboat seems to write `now` into this field instead of Nothing
   , giAuthor :: Maybe Text
   , giBody :: Maybe Text -- Contents displayed when Enter is pressed (HTML by default)
-  } deriving (Show, Read, Eq)
+  } deriving (Show, Read, Eq, Generic)
+instance Binary GenericItem
 
 giURLL :: Lens' GenericItem (Maybe Text)
 giURLL f st = (f $ giURL st) <&> \u -> st {giURL = u}
@@ -35,7 +39,8 @@ giURLL f st = (f $ giURL st) <&> \u -> st {giURL = u}
 data GenericFeed = GenericFeed
   { gfTitle :: Text
   , gfURL :: Text
-  } deriving (Show, Read)
+  } deriving (Show, Read, Generic)
+instance Binary GenericFeed
 
 entryContentToText :: A.EntryContent -> Text
 entryContentToText (A.TextContent x) = x
@@ -114,18 +119,6 @@ type ItemStatus = Bool
 type CacheEntry = (GenericFeed, [(GenericItem, ItemStatus)])
 
 type CacheFile = [(String, Maybe CacheEntry)]
-
--- Read CacheFile from a file and make sure the file is closed
-readCacheFile :: FilePath -> IO CacheFile
-readCacheFile f = do
-  let readForSure = readFile >=> (\s -> seq (length s) $ pure s)
-  es <- (try :: IO String -> IO (Either IOError String)) $ readForSure f
-  case es of
-    Left _ -> pure []
-    Right s -> pure $ read s
-
-writeCacheFile :: FilePath -> CacheFile -> IO ()
-writeCacheFile f = writeFile f . show
 
 refreshCacheFileWithUrls :: [FilePath] -> CacheFile -> CacheFile
 refreshCacheFileWithUrls us cf = map f us

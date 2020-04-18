@@ -23,6 +23,7 @@ import Options.Applicative hiding (str)
 import State
 import State.Menu
 import Interface
+import GenericFeed.Binary (readCacheFile, writeCacheFile)
 
 import Concurrency (workerThread, WorkerEvent, handleThreadEvent)
 import Control.Concurrent.Async (async, cancel)
