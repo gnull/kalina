@@ -1,12 +1,12 @@
-name:                rss-test
+name:                kalina
 version:             0.1.0.0
 #synopsis:
 #description:
-homepage:            https://github.com/githubuser/rss-test#readme
+homepage:            https://github.com/gnull/kalina#readme
 license:             BSD3
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2019 Author name here
+author:              Ivan Oleynikov
+maintainer:          ivan.oleynikov95@gmail.com
+copyright:           2020 Ivan Oleynikov
 category:            Web
 extra-source-files:
 - README.md
@@ -47,7 +47,7 @@ library:
   - Interface.Actions
 
 executables:
-  news-view:
+  kalina:
     source-dirs:      app/
     main:             Main.hs
-    dependencies:     rss-test
+    dependencies:     kalina
