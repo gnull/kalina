@@ -18,7 +18,7 @@ import Brick.Widgets.Center
 import Brick.Widgets.Border
 import Graphics.Vty.Input.Events
 
-import Text.Pandoc (runPure, writePlain, readHtml, def)
+import Text.Pandoc (runPure, writePlain, readHtml, def, WriterOptions(writerWrapText), WrapOption(..))
 
 import State
 import State.Menu
@@ -36,7 +36,8 @@ renderContents (GenericItem {..}) =
       , f <$> giBody
       ]
   where
-    f x = case runPure $ writePlain def =<< readHtml def x of
+    settings = def { writerWrapText = WrapNone }
+    f x = case runPure $ writePlain settings =<< readHtml def x of
       Left e -> T.pack $ show e
       Right b -> b
 
