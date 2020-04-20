@@ -12,6 +12,7 @@ import Data.Ord (comparing)
 import Data.Functor.Compose (Compose(..))
 
 import Control.Applicative ((<|>))
+import Control.Arrow ((&&&))
 import Control.Lens
 import Data.Foldable (Foldable(..))
 
@@ -180,8 +181,9 @@ appendNewItems u (f, is) s = case s of
       $ over liAfter (fmap patchMaybe)
       $ over (lensPair liUrl $ lensPair liFeed liItems) patch i
   where
+    elemBy g l x = elem (g x) $ map g l
     remaining :: [GenericItem] -> [GenericItem] -> [GenericItem]
-    remaining new old = filter (not . flip elem old) new
+    remaining new old = filter (not . elemBy (giTitle &&& giURL) old) new
 
     patchMaybe :: (FilePath, Maybe (GenericFeed, [(GenericItem, ItemStatus)]))
                -> (FilePath, Maybe (GenericFeed, [(GenericItem, ItemStatus)]))
