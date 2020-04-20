@@ -8,6 +8,7 @@ import Control.Monad (replicateM, mapM_)
 import System.Directory (getHomeDirectory)
 import System.FilePath ((</>))
 import Data.Text () -- Instances
+import Data.Time.LocalTime (TimeZone, getCurrentTimeZone)
 
 import Control.Lens ((^.))
 
@@ -49,9 +50,9 @@ theMap = attrMap V.defAttr
     , ("FetchOK",           V.withForeColor V.currentAttr V.green)
     ]
 
-app :: (FilePath -> IO ()) -> App State WorkerEvent ()
-app q = App
-  { appDraw = draw
+app :: TimeZone -> (FilePath -> IO ()) -> App State WorkerEvent ()
+app z q = App
+  { appDraw = draw z
   , appHandleEvent = handle q
   , appStartEvent = return
   , appAttrMap = const $ theMap
@@ -108,5 +109,6 @@ main = do
   from <- newBChan 100
   to <- newBChan 20
   th <- replicateM 10 $ async $ workerThread from to
-  writeCacheFile oCache =<< cacheFromState <$> defaultMain' to (app $ writeBChan from) s
+  z <- getCurrentTimeZone
+  writeCacheFile oCache =<< cacheFromState <$> defaultMain' to (app z $ writeBChan from) s
   mapM_ cancel th

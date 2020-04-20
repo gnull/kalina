@@ -8,6 +8,10 @@ module GenericFeed where
 
 import Control.Arrow ((&&&))
 import Control.Monad (join)
+import Data.Semigroup (First(..))
+import Data.Time.Clock (UTCTime)
+import Data.Time.Format (parseTimeM, parseTimeOrError, formatTime, defaultTimeLocale, iso8601DateFormat, rfc822DateFormat)
+import Data.Foldable (fold)
 
 import Control.Lens
 
@@ -16,17 +20,37 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 
 import GHC.Generics (Generic)
-import Data.Binary (Binary) -- only to derive instances here
+import Data.Binary (Binary(..)) -- only to derive instances here
 
 import Text.Feed.Types
 import qualified Text.Atom.Feed as A
 import qualified Text.RSS.Syntax as R
 import qualified Text.RSS1.Syntax as R1
 
+-- This type allows to create a custom Binary instance for UTCTime. We can't
+-- derive one, since UTCTime isn't declared as Generic in time package.
+newtype MyTime = MyTime { getMyTime :: UTCTime }
+  deriving (Show, Eq, Read)
+
+instance Binary MyTime where
+    put = put . formatTime defaultTimeLocale rfc822DateFormat . getMyTime
+    get = (MyTime . parseTimeOrError False defaultTimeLocale rfc822DateFormat) <$> get
+
+parseDate :: String -> Maybe MyTime
+parseDate t = fmap MyTime $ first $ map (\f -> parseTimeM True defaultTimeLocale f t) dateFormats
+  where
+    dateFormats =
+      [ iso8601DateFormat $ Just "%H:%M:%S%Z"
+      , rfc822DateFormat
+      , "%d %b %Y %H:%M:%S %Z"
+      ]
+    first :: [Maybe a] -> Maybe a
+    first = fmap getFirst . fold . map (fmap First)
+
 data GenericItem = GenericItem
   { giTitle :: Maybe Text -- Title displayed in list
   , giURL :: Maybe Text -- URL to follow
-  , giDate :: Maybe Text -- TODO: Replace this with some better type for date.
+  , giDate :: Maybe MyTime
                          -- Also, newsboat seems to write `now` into this field instead of Nothing
   , giAuthor :: Maybe Text
   , giBody :: Maybe Text -- Contents displayed when Enter is pressed (HTML by default)
@@ -54,7 +78,7 @@ atomItemToGeneric :: A.Entry -> GenericItem
 atomItemToGeneric e = GenericItem
   { giTitle = Just $ removeBadCharacters $ textContentToText $ A.entryTitle e
   , giURL = Just $ A.entryId e
-  , giDate = Just $ removeBadCharacters $ A.entryUpdated e
+  , giDate = parseDate $ T.unpack $ removeBadCharacters $ A.entryUpdated e
   , giAuthor = Just $ removeBadCharacters $ T.pack $ show $ A.entryAuthors e
   , giBody = entryContentToText <$> A.entryContent e
   }
@@ -63,7 +87,7 @@ rssItemToGeneric :: R.RSSItem -> GenericItem
 rssItemToGeneric e = GenericItem
   { giTitle = removeBadCharacters <$> R.rssItemTitle e
   , giURL = R.rssItemLink e
-  , giDate = removeBadCharacters <$> R.rssItemPubDate e
+  , giDate = parseDate =<< T.unpack <$> removeBadCharacters <$> R.rssItemPubDate e
   , giAuthor = removeBadCharacters <$> R.rssItemAuthor e
   , giBody = R.rssItemDescription e
   }

@@ -7,6 +7,9 @@ import Data.Maybe
 import Data.Text () -- Instances
 import qualified Data.Text as T
 
+import Data.Time.LocalTime (TimeZone, utcToLocalTime)
+import Data.Time.Format (formatTime, defaultTimeLocale)
+
 import Control.Lens
 
 import GenericFeed
@@ -25,13 +28,16 @@ import State.Menu
 import State.Fetch
 import Interface.Actions
 
-renderContents :: GenericItem -> Widget ()
-renderContents (GenericItem {..}) =
+timeToText :: TimeZone -> MyTime -> T.Text
+timeToText z = T.pack . formatTime defaultTimeLocale "%Y-%m-%d %H:%M %Z" . utcToLocalTime z . getMyTime
+
+renderContents :: TimeZone -> GenericItem -> Widget ()
+renderContents z (GenericItem {..}) =
     txtWrap $ T.unlines $ catMaybes
       [ ("Title: " <>) <$> giTitle
       , ("Link: " <>) <$> giURL
       , ("Author: " <>) <$> giAuthor
-      , ("Date: " <>) <$> giDate
+      , ("Date: " <>) <$> timeToText z <$> giDate
       , Just ""
       , f <$> giBody
       ]
@@ -41,11 +47,11 @@ renderContents (GenericItem {..}) =
       Left e -> T.pack $ show e
       Right b -> b
 
-renderItem :: Bool -> (GenericItem , ItemStatus)-> Widget ()
-renderItem _ (GenericItem {..}, r) = padRight Max $ markup
+renderItem :: TimeZone -> Bool -> (GenericItem , ItemStatus)-> Widget ()
+renderItem z _ (GenericItem {..}, r) = padRight Max $ markup
   $ (@? if r then "read-item" else "unread-item") $
       (if r then "   " else " N ")
-   <> (fromMaybe "" giDate)
+   <> (fromMaybe "" $ timeToText z <$> giDate)
    <> "  "
    <> (T.unwords $ T.words $ fromMaybe "*Empty*" giTitle)
 
@@ -84,17 +90,17 @@ helpWidget = vBox
   where
     hl = "hightlight"
 
-drawMenu :: State -> Widget ()
-drawMenu s =
+drawMenu :: TimeZone -> State -> Widget ()
+drawMenu tz s =
     if s ^. displayHelp then
       helpWidget
     else
       case s ^. menuState of
         MenuFeeds z -> g $ renderList (renderFeed $ s ^. fetchState) True $ z ^. listState . listStateFilter (feedsFilterPredicate $ s ^. menuPrefs)
-        MenuItems False is -> g $ renderList renderItem True $ is ^. liItems ^. listState ^. listStateFilter (itemsFilterPredicate $ s ^. menuPrefs)
+        MenuItems False is -> g $ renderList (renderItem tz) True $ is ^. liItems ^. listState ^. listStateFilter (itemsFilterPredicate $ s ^. menuPrefs)
         -- TODO: maybe I should split the True and False versions of MenuItems into different constructors to get
         -- rid of the fromJust on the next line. The True option must always have a non-empty zipper.
-        MenuItems True is -> f $ padBottom Max $ renderContents $ fromJust $ is ^? (liItems . mFocus . _1)
+        MenuItems True is -> f $ padBottom Max $ renderContents tz $ fromJust $ is ^? (liItems . mFocus . _1)
   where
     f x = vBox
       [ withAttr "title" $ padRight Max $ str "Title"
@@ -110,8 +116,8 @@ helpLine = border $ vLimit 1 $ padRight Max $
   <+> str " ? - help "
 
 
-draw :: State -> [Widget ()]
-draw s = [drawMenu s]
+draw :: TimeZone -> State -> [Widget ()]
+draw z s = [drawMenu z s]
 
 queueHelper :: (FilePath -> IO ()) -> FetchState -> FilePath -> IO ()
 queueHelper q s u = if fetchLookup u s == FetchStarted

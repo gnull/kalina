@@ -30,6 +30,7 @@ dependencies:
   - pandoc >= 2.3 && < 3
   - containers >= 0.6 && < 1
   - binary >= 0.8 && < 1
+  - time
 
 ghc-options:
 - -Wall -threaded
