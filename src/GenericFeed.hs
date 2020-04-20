@@ -112,9 +112,6 @@ parseFeedsConfig = filter (not . null) . map processUrlLine . lines
     headDefault d [] = d
     headDefault _ (x:_) = x
 
-showGenericFeed :: GenericFeed -> IO ()
-showGenericFeed (GenericFeed {..}) = T.putStrLn $ gfTitle <> " (" <> gfURL <> ")"
-
 type ItemStatus = Bool
 type CacheEntry = (GenericFeed, [(GenericItem, ItemStatus)])
 
@@ -123,17 +120,3 @@ type CacheFile = [(String, Maybe CacheEntry)]
 refreshCacheFileWithUrls :: [FilePath] -> CacheFile -> CacheFile
 refreshCacheFileWithUrls us cf = map f us
   where f u = (u, join $ lookup u cf)
-
-cacheFileUrls :: CacheFile -> [FilePath]
-cacheFileUrls = map fst
-
-newCacheEntry :: GenericFeed -> [GenericItem] -> CacheEntry
-newCacheEntry f is = (f, map (, False) is)
-
--- TODO: Terribly inefficient, but will do for now
-updateCacheEntry :: GenericFeed -> [GenericItem] -> CacheEntry -> CacheEntry
-updateCacheEntry f is (_, is') = (f, map (, False) new ++ is')
-  where
-    new = filter (\i -> elemBy ((giTitle &&& giURL) . fst) (giTitle &&& giURL $ i) is') is
-    elemBy :: Eq b => (a -> b) -> b -> [a] -> Bool
-    elemBy g x l = elem x $ map g l
