@@ -76,6 +76,7 @@ helpWidget = vBox
              <> "Enter" @? hl <> " — open a menu item\n"
              <> "q" @? hl <> " — back/quit\n"
              <> "A" @? hl <> " — mark current feed as read\n"
+             <> "n" @? hl <> " — toggle read status of the selected item\n"
              <> "l" @? hl <> " — toggle display of read feed/items\n"
              <> "r/R" @? hl <> " — fetch current feed/all feeds\n"
              <> "o" @? hl <> " — open current item in browser\n"
@@ -124,6 +125,7 @@ handleMenu queue st (EvKey (KChar 'R') _) = fetchAll (queueHelper queue $ st ^. 
 handleMenu _ st (EvKey (KChar 'q') _) = back st
 handleMenu _ st (EvKey KEnter _) = fmap touchListIdex <$> enter st
 handleMenu _ st (EvKey (KChar 'l') _) = fmap touchListIdex <$> toggleShowRead st
+handleMenu _ st (EvKey (KChar 'n') _) = toggleReadItem st
 handleMenu _ st (EvKey (KChar 'A') _) = markAsRead st
 handleMenu _ st (EvKey (KChar 'o') _) = openCurrentUrl st
 handleMenu _ st (EvKey (KChar '?') _) = toggleHelp st

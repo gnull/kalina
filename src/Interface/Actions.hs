@@ -5,6 +5,7 @@ module Interface.Actions
   , fetchOne
   , fetchAll
   , toggleShowRead
+  , toggleReadItem
   , markAsRead
   , openCurrentUrl
   , toggleHelp
@@ -60,6 +61,11 @@ toggleShowRead st = continue $ case st ^. menuState of
     MenuFeeds _ -> over (menuPrefs . showUnreadFeeds) not st
     MenuItems False _ -> over (menuPrefs . showUnreadItems) not st
     MenuItems True _ -> st
+
+toggleReadItem :: Action
+toggleReadItem st = continue $ case st ^. menuState of
+  MenuItems b i -> set menuState (MenuItems b $ over (liItems . mFocus) (second not) i) st
+  MenuFeeds _ -> st
 
 toggleHelp :: Action
 toggleHelp st = continue $ over displayHelp not st
