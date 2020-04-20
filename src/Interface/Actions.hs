@@ -60,16 +60,6 @@ toggleShowRead st = continue $ case st ^. menuState of
     MenuFeeds _ -> over (menuPrefs . showUnreadFeeds) not st
     MenuItems False _ -> over (menuPrefs . showUnreadItems) not st
     MenuItems True _ -> st
--- toggleShowRead st = continue $ case st ^. menuState of
---     LevelFeeds fs -> let
---         st' = over showUnreadFeeds not st
---         (_, fs') = over (feedsListState $ st' ^. showUnreadFeeds) id (st' ^. innerState, fs)
---       in st' & menuState .~ LevelFeeds fs'
---     LevelItems fs is -> let
---         st' = over showUnreadItems not st
---         (_, Just is') = over (itemsListState $ st' ^. showUnreadItems) id (fromJust $ st' ^? (selectedFeed . itemsOfFeed), Just is)
---       in st' & menuState .~ LevelItems fs is'
---     LevelContents _ _ -> st
 
 toggleHelp :: Action
 toggleHelp st = continue $ over displayHelp not st
