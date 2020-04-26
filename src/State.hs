@@ -24,6 +24,8 @@ data State = State { _menuState :: MenuState
                    , _menuPrefs :: Prefs
                    , _displayHelp :: Bool
                    , _fetchState :: FetchState
+                   , _forceShowFeed :: Maybe Int
+                   , _forceShowItem :: Maybe Int
                    }
 
 makeLenses ''State
@@ -37,6 +39,8 @@ initialState c = State
     }
   , _displayHelp = False
   , _fetchState = fetchInitial
+  , _forceShowFeed = Nothing
+  , _forceShowItem = Nothing
   }
 
 feedsFilterPredicate :: Prefs -> (String, Maybe CacheEntry) -> Bool
@@ -52,6 +56,16 @@ itemsFilterPredicate _ (_, r) = not r
 -- current filtering settings.
 touchListIdex :: State -> State
 touchListIdex s = case s ^. menuState of
-  MenuFeeds z -> set menuState (MenuFeeds $ over (listState . listStateFilter' False (feedsFilterPredicate $ s ^. menuPrefs)) id z) s
-  MenuItems False i -> set menuState (MenuItems False $ over (liItems . listState . listStateFilter' False (itemsFilterPredicate $ s ^. menuPrefs)) id i) s
+  MenuFeeds z -> set menuState (MenuFeeds $ over (listState . listStateFilter Nothing (feedsFilterPredicate $ s ^. menuPrefs)) id z) s
+  MenuItems False i -> set menuState (MenuItems False $ over (liItems . listState . listStateFilter Nothing (itemsFilterPredicate $ s ^. menuPrefs)) id i) s
   _ -> s
+
+forceShowSelected :: State -> State
+forceShowSelected s = case s ^. menuState of
+    MenuFeeds z -> set forceShowFeed (maybePos z) s
+    MenuItems _ i -> set forceShowItem (maybePos $ i ^. liItems) s
+
+cancelForceShowSelected :: State -> State
+cancelForceShowSelected s = touchListIdex $ case s ^. menuState of
+  MenuFeeds _ -> set forceShowFeed Nothing s
+  MenuItems _ _ -> set forceShowItem Nothing s
