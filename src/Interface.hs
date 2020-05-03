@@ -126,19 +126,24 @@ queueHelper q s u = if fetchLookup u s == FetchStarted
 
 handleMenu :: (FilePath -> IO ()) -> State -> Event -> EventM () (Next State)
 handleMenu _ st@(State {_displayHelp = True}) (EvKey _ _) = toggleHelp st
-handleMenu queue st (EvKey (KChar 'r') _) = fetchOne (queueHelper queue $ st ^. fetchState) st
-handleMenu queue st (EvKey (KChar 'R') _) = fetchAll (queueHelper queue $ st ^. fetchState) st
-handleMenu _ st (EvKey (KChar 'q') _) = back st
-handleMenu _ st (EvKey KEnter _) = fmap touchListIdex <$> enter st
-handleMenu _ st (EvKey (KChar 'l') _) = fmap touchListIdex <$> toggleShowRead st
-handleMenu _ st (EvKey (KChar 'n') _) = toggleReadItem st
-handleMenu _ st (EvKey (KChar 'A') _) = markAsRead st
-handleMenu _ st (EvKey (KChar 'o') _) = openCurrentUrl st
-handleMenu _ st (EvKey (KChar '?') _) = toggleHelp st
--- We let the list widget handle all the other keys
-handleMenu _ st e = continue =<< menuState f st
-  where
-    f s = case s of
-      MenuFeeds z -> MenuFeeds <$> (listState . listStateFilter (feedsFilterPredicate $ st ^. menuPrefs)) (handleListEventVi handleListEvent e) z
-      MenuItems False i -> MenuItems False <$> (liItems . listState . listStateFilter (itemsFilterPredicate $ st ^. menuPrefs)) (handleListEventVi handleListEvent e) i
-      x@(MenuItems True _) -> pure x
+handleMenu queue st e@(EvKey k _) = case k of
+  (KChar 'r') -> fetchOne (queueHelper queue $ st ^. fetchState) st
+  (KChar 'R') -> fetchAll (queueHelper queue $ st ^. fetchState) st
+  (KChar 'q') -> back st
+  KEnter      -> fmap touchListIdex <$> enter st
+  (KChar 'l') -> fmap touchListIdex <$> toggleShowRead st
+  (KChar 'n') -> toggleReadItem st
+  (KChar 'A') -> markAsRead st
+  (KChar 'o') -> openCurrentUrl st
+  (KChar '?') -> toggleHelp st
+  _           -> let -- let one of the lists handle the key
+      f s = case s of
+         MenuFeeds z -> MenuFeeds <$>
+           (listState . listStateFilter (feedsFilterPredicate $ st ^. menuPrefs))
+           (handleListEventVi handleListEvent e) z
+         MenuItems False i -> MenuItems False <$>
+           (liItems . listState . listStateFilter (itemsFilterPredicate $ st ^. menuPrefs))
+           (handleListEventVi handleListEvent e) i
+         x@(MenuItems True _) -> pure x
+     in continue =<< menuState f st
+handleMenu _ st _ = continue st -- ignore mouse, resize, etc. events
