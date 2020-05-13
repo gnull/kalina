@@ -58,8 +58,8 @@ fetchAll queue s = (traverse . _1) (liftIO . queue) (s ^. menuState ^. allFeeds)
 -- through a lens to make sure indexes point to a visible element.
 toggleShowRead :: Action
 toggleShowRead st = continue $ case st ^. menuState of
-    MenuFeeds _ -> over (menuPrefs . showUnreadFeeds) not st
-    MenuItems False _ -> over (menuPrefs . showUnreadItems) not st
+    MenuFeeds _ -> over (filterPrefs . showUnreadFeeds) not st
+    MenuItems False _ -> over (filterPrefs . showUnreadItems) not st
     MenuItems True _ -> st
 
 toggleReadItem :: Action
