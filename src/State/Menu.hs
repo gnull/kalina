@@ -58,13 +58,11 @@ zipRight (Zipper l x (x':r)) = Zipper (x:l) x' r
 
 zipSetIndex :: Int -> Zipper a -> Zipper a
 zipSetIndex idx z@(Zipper l _ _) = case compare idx le of
-    LT -> repeatN (le - idx) zipLeft z
+    LT -> iterate zipLeft z !! (le - idx)
     EQ -> z
-    GT -> repeatN (idx - le) zipRight z
+    GT -> iterate zipRight z !! (idx - le)
   where
     le = length l
-    repeatN 0 _ a = a
-    repeatN i f a = repeatN (pred i) f $ f a
 
 instance Foldable Zipper where
   foldr f a (Zipper l x r) = foldr f a $ Prelude.reverse l ++ x : r
