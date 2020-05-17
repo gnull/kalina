@@ -38,9 +38,9 @@ preservingResult f x = const x <$> f x
 
 enter :: Action
 enter st = continue
-  -- the order of two "over"s here is important
+  -- the order of the "over" and "set" here is important
   $ over menuState menuDown
-  $ over (menuState . selectedItem) (second $ const True) st
+  $ set (menuState . selectedItem . _2) True st
 
 back :: Action
 back st = case st ^. menuState of
