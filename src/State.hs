@@ -16,6 +16,8 @@ import State.Fetch
 data FilterPrefs = FilterPrefs
   { _showUnreadFeeds :: Bool
   , _showUnreadItems :: Bool
+  , _forceShowFeed :: Maybe FilePath
+  , _forceShowItem :: Maybe GenericItem
   }
 
 makeLenses ''FilterPrefs
@@ -34,6 +36,8 @@ initialState c = State
   , _filterPrefs = FilterPrefs
     { _showUnreadFeeds = True
     , _showUnreadItems = True
+    , _forceShowFeed = Nothing
+    , _forceShowItem = Nothing
     }
   , _displayHelp = False
   , _fetchState = fetchInitial
@@ -41,12 +45,27 @@ initialState c = State
 
 feedsFilterPredicate :: FilterPrefs -> (String, Maybe CacheEntry) -> Bool
 feedsFilterPredicate (FilterPrefs {_showUnreadFeeds = True}) _ = True
-feedsFilterPredicate _ (_, Nothing) = False
-feedsFilterPredicate _ (_, Just (_, is)) = any (not . snd) is
+feedsFilterPredicate (FilterPrefs {_forceShowFeed = u}) (u', f)
+  = u == Just u' || case f of
+    Nothing -> False
+    Just (_, is) -> any (not . snd) is
 
 itemsFilterPredicate :: FilterPrefs -> (GenericItem, ItemStatus) -> Bool
 itemsFilterPredicate (FilterPrefs {_showUnreadItems = True}) _ = True
-itemsFilterPredicate _ (_, r) = not r
+itemsFilterPredicate (FilterPrefs {_forceShowItem = i}) (i', r)
+  = i == Just i' || not r
+
+forceShowCurrentFeed :: State -> State
+forceShowCurrentFeed s = set (filterPrefs . forceShowFeed) (s ^? menuState . selectedFeedUrl) s
+
+clearForceShowFeed :: State -> State
+clearForceShowFeed = set (filterPrefs . forceShowFeed) Nothing
+
+forceShowCurrentItem :: State -> State
+forceShowCurrentItem s = set (filterPrefs . forceShowItem) (s ^? menuState . selectedItem . _1) s
+
+clearForceShowItem :: State -> State
+clearForceShowItem = set (filterPrefs . forceShowItem) Nothing
 
 -- This function updates (if needed) the menu list indices, depending on the
 -- current filtering settings.

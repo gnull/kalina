@@ -143,6 +143,11 @@ listStateFilter' showSelected p f st = fmap g $ f $ newListState idx' l'
 listStateFilter :: (a -> Bool) -> Lens' (L a) (L a)
 listStateFilter = listStateFilter' True
 
+-- This one looks at the URL of the currently selected feed if one is selected.
+selectedFeedUrl :: Traversal' MenuState FilePath
+selectedFeedUrl f (MenuFeeds z) = MenuFeeds <$> (mFocus . _1) f z
+selectedFeedUrl f (MenuItems b is) = MenuItems b <$> liUrl f is
+
 -- A lens which looks at all the items of the currently selected feed
 selectedFeedItems :: Traversal' MenuState (GenericItem, ItemStatus)
 selectedFeedItems f (MenuFeeds z) = MenuFeeds <$> (mFocus . _2 . _Just . _2 . traverse) f z
