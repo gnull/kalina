@@ -92,21 +92,19 @@ data LevelItems = LevelItems
 makeLenses ''LevelItems
 
 data MenuState = MenuFeeds (MZipper (FilePath, Maybe CacheEntry))
-               | MenuItems Bool       -- Is the selected item open?
-                           LevelItems -- The Zipper state
+               | MenuItems LevelItems -- The Zipper state
 
 -- Go one level up in the menu
 menuUp :: MenuState -> MenuState
 menuUp (MenuFeeds x) = MenuFeeds x
-menuUp (MenuItems False (LevelItems {..})) = MenuFeeds $ mZipper $ Zipper _liBefore (_liUrl, Just (_liFeed, toList _liItems)) _liAfter
-menuUp (MenuItems True x) = MenuItems False x
+menuUp (MenuItems (LevelItems {..})) = MenuFeeds $ mZipper $ Zipper _liBefore (_liUrl, Just (_liFeed, toList _liItems)) _liAfter
 
 -- Go one level down in the menu
 menuDown :: MenuState -> MenuState
 menuDown x@(MenuFeeds (Compose Nothing)) = x
 menuDown x@(MenuFeeds (Compose (Just (Zipper _ (_, Nothing) _)))) = x
-menuDown (MenuFeeds (Compose (Just (Zipper bef (url, Just (feed, is)) aft)))) = MenuItems False $ LevelItems bef aft url feed $ fromList is
-menuDown (MenuItems _ is) = MenuItems True is
+menuDown (MenuFeeds (Compose (Just (Zipper bef (url, Just (feed, is)) aft)))) = MenuItems $ LevelItems bef aft url feed $ fromList is
+menuDown (MenuItems is) = MenuItems is
 
 menuFromCache :: CacheFile -> MenuState
 menuFromCache = MenuFeeds . fromList
@@ -146,18 +144,18 @@ listStateFilter = listStateFilter' True
 -- This one looks at the URL of the currently selected feed if one is selected.
 selectedFeedUrl :: Traversal' MenuState FilePath
 selectedFeedUrl f (MenuFeeds z) = MenuFeeds <$> (mFocus . _1) f z
-selectedFeedUrl f (MenuItems b is) = MenuItems b <$> liUrl f is
+selectedFeedUrl f (MenuItems is) = MenuItems <$> liUrl f is
 
 -- A lens which looks at all the items of the currently selected feed
 selectedFeedItems :: Traversal' MenuState (GenericItem, ItemStatus)
 selectedFeedItems f (MenuFeeds z) = MenuFeeds <$> (mFocus . _2 . _Just . _2 . traverse) f z
-selectedFeedItems f (MenuItems b is) = MenuItems b <$> (liItems . traverse) f is
+selectedFeedItems f (MenuItems is) = MenuItems <$> (liItems . traverse) f is
 
 -- This is similar to the previous one, but looks at only one selected item (if
 -- one is selected).
 selectedItem :: Traversal' MenuState (GenericItem, ItemStatus)
 selectedItem _ (MenuFeeds z) = pure $ MenuFeeds z
-selectedItem f (MenuItems b is) = MenuItems b <$> (liItems . mFocus) f is
+selectedItem f (MenuItems is) = MenuItems <$> (liItems . mFocus) f is
 
 type Getting' s a = Getting a s a
 
@@ -179,7 +177,7 @@ lensPair la lb f s = f (a, b) <&> \(a', b') -> set la a' $ set lb b' s
 appendNewItems :: FilePath -> (GenericFeed, [GenericItem]) -> MenuState -> MenuState
 appendNewItems u (f, is) s = case s of
     MenuFeeds z -> MenuFeeds $ fmap patchMaybe z
-    MenuItems b i -> MenuItems b
+    MenuItems i -> MenuItems
       $ over liBefore (fmap patchMaybe)
       $ over liAfter (fmap patchMaybe)
       $ over (lensPair liUrl $ lensPair liFeed liItems) patch i

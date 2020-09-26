@@ -72,5 +72,5 @@ clearForceShowItem = set (filterPrefs . forceShowItem) Nothing
 touchListIdex :: State -> State
 touchListIdex s = case s ^. menuState of
   MenuFeeds z -> set menuState (MenuFeeds $ over (listState . listStateFilter' False (feedsFilterPredicate $ s ^. filterPrefs)) id z) s
-  MenuItems False i -> set menuState (MenuItems False $ over (liItems . listState . listStateFilter' False (itemsFilterPredicate $ s ^. filterPrefs)) id i) s
+  MenuItems i -> set menuState (MenuItems $ over (liItems . listState . listStateFilter' False (itemsFilterPredicate $ s ^. filterPrefs)) id i) s
   _ -> s

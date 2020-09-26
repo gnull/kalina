@@ -60,6 +60,9 @@ instance Binary GenericItem
 giURLL :: Lens' GenericItem (Maybe Text)
 giURLL f st = (f $ giURL st) <&> \u -> st {giURL = u}
 
+giBodyL :: Lens' GenericItem (Maybe Text)
+giBodyL f st = (f $ giBody st) <&> \u -> st {giBody = u}
+
 data GenericFeed = GenericFeed
   { gfTitle :: Text
   , gfURL :: Text

@@ -7,8 +7,7 @@ import Data.Maybe
 import Data.Text () -- Instances
 import qualified Data.Text as T
 
-import Data.Time.LocalTime (TimeZone, utcToLocalTime)
-import Data.Time.Format (formatTime, defaultTimeLocale)
+import Data.Time.LocalTime (TimeZone)
 
 import Control.Lens
 
@@ -21,31 +20,10 @@ import Brick.Widgets.Center
 import Brick.Widgets.Border
 import Graphics.Vty.Input.Events
 
-import Text.Pandoc (runPure, writePlain, readHtml, def, WriterOptions(writerWrapText), WrapOption(..))
-
 import State
 import State.Menu
 import State.Fetch
 import Interface.Actions
-
-timeToText :: TimeZone -> MyTime -> T.Text
-timeToText z = T.pack . formatTime defaultTimeLocale "%Y-%m-%d %H:%M %Z" . utcToLocalTime z . getMyTime
-
-renderContents :: TimeZone -> GenericItem -> Widget ()
-renderContents z (GenericItem {..}) =
-    txtWrap $ T.unlines $ catMaybes
-      [ ("Title: " <>) <$> giTitle
-      , ("Link: " <>) <$> giURL
-      , ("Author: " <>) <$> giAuthor
-      , ("Date: " <>) <$> timeToText z <$> giDate
-      , Just ""
-      , f <$> giBody
-      ]
-  where
-    settings = def { writerWrapText = WrapNone }
-    f x = case runPure $ writePlain settings =<< readHtml def x of
-      Left e -> T.pack $ show e
-      Right b -> b
 
 renderItem :: TimeZone -> Bool -> (GenericItem , ItemStatus)-> Widget ()
 renderItem z _ (GenericItem {..}, r) = padRight Max $ markup
@@ -97,10 +75,7 @@ drawMenu tz s =
     else
       case s ^. menuState of
         MenuFeeds z -> g $ renderList (renderFeed $ s ^. fetchState) True $ z ^. listState . listStateFilter (feedsFilterPredicate $ s ^. filterPrefs)
-        MenuItems False is -> g $ renderList (renderItem tz) True $ is ^. liItems ^. listState ^. listStateFilter (itemsFilterPredicate $ s ^. filterPrefs)
-        -- TODO: maybe I should split the True and False versions of MenuItems into different constructors to get
-        -- rid of the fromJust on the next line. The True option must always have a non-empty zipper.
-        MenuItems True is -> f $ padBottom Max $ renderContents tz $ fromJust $ is ^? (liItems . mFocus . _1)
+        MenuItems is -> g $ renderList (renderItem tz) True $ is ^. liItems ^. listState ^. listStateFilter (itemsFilterPredicate $ s ^. filterPrefs)
   where
     f x = vBox
       [ withAttr "title" $ padRight Max $ str "Title"
@@ -130,7 +105,7 @@ handleMenu queue st e@(EvKey k _) = case k of
   (KChar 'r') -> fetchOne (queueHelper queue $ st ^. fetchState) st
   (KChar 'R') -> fetchAll (queueHelper queue $ st ^. fetchState) st
   (KChar 'q') -> back st
-  KEnter      -> fmap touchListIdex <$> enter st
+  KEnter      -> fmap (touchListIdex . enter) <$> openCurrentInPager st
   (KChar 'l') -> fmap touchListIdex <$> toggleShowRead st
   (KChar 'n') -> toggleReadItem st
   (KChar 'A') -> markAsRead st
@@ -141,9 +116,8 @@ handleMenu queue st e@(EvKey k _) = case k of
          MenuFeeds z -> MenuFeeds <$>
            (listState . listStateFilter (feedsFilterPredicate $ st ^. filterPrefs))
            (handleListEventVi handleListEvent e) z
-         MenuItems False i -> MenuItems False <$>
+         MenuItems i -> MenuItems <$>
            (liItems . listState . listStateFilter (itemsFilterPredicate $ st ^. filterPrefs))
            (handleListEventVi handleListEvent e) i
-         x@(MenuItems True _) -> pure x
      in continue =<< menuState f st
 handleMenu _ st _ = continue st -- ignore mouse, resize, etc. events

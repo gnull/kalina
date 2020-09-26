@@ -1,3 +1,6 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
+
 module Interface.Actions
   ( Action
   , enter
@@ -7,17 +10,27 @@ module Interface.Actions
   , toggleShowRead
   , toggleReadItem
   , markAsRead
+  , openCurrentInPager
   , openCurrentUrl
   , toggleHelp
+  , timeToText
   ) where
 
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Lens
 import Control.Arrow (second)
+import Control.Monad (void)
+import Data.Maybe (catMaybes)
 
-import Data.Text (unpack)
+import Data.Time.LocalTime (TimeZone, utcToLocalTime, getCurrentTimeZone)
+import Data.Time.Format (formatTime, defaultTimeLocale)
+import Text.Pandoc (runPure, writePlain, readHtml, def, WriterOptions(writerWrapText), WrapOption(..))
+
+import Data.Text (unpack, Text, pack)
+import Data.Text as T
 
 import System.Process (rawSystem)
+import System.IO.Unsafe (unsafePerformIO)
 
 import Brick
 
@@ -36,10 +49,10 @@ type Action = State -> EventM () (Next State)
 preservingResult :: Lens s s s ()
 preservingResult f x = const x <$> f x
 
-enter :: Action
-enter st = continue
+enter :: State -> State
+enter st =
   -- the order of the "over" and "set" here is important
-  $ over menuState menuDown
+    over menuState menuDown
   $ set (menuState . selectedItem . _2) True st
 
 back :: Action
@@ -59,12 +72,11 @@ fetchAll queue s = (traverse . _1) (liftIO . queue) (s ^. menuState ^. allFeeds)
 toggleShowRead :: Action
 toggleShowRead st = continue $ case st ^. menuState of
     MenuFeeds _ -> over (filterPrefs . showUnreadFeeds) not st
-    MenuItems False _ -> over (filterPrefs . showUnreadItems) not st
-    MenuItems True _ -> st
+    MenuItems _ -> over (filterPrefs . showUnreadItems) not st
 
 toggleReadItem :: Action
 toggleReadItem st = continue $ case st ^. menuState of
-  MenuItems b i -> set menuState (MenuItems b $ over (liItems . mFocus) (second not) i) st
+  MenuItems i -> set menuState (MenuItems $ over (liItems . mFocus) (second not) i) st
   MenuFeeds _ -> st
 
 toggleHelp :: Action
@@ -72,6 +84,29 @@ toggleHelp st = continue $ over displayHelp not st
 
 markAsRead :: Action
 markAsRead st = continue $ over (menuState . selectedFeedItems) (second $ const True) st
+
+timeToText :: TimeZone -> MyTime -> Text
+timeToText z = pack . formatTime defaultTimeLocale "%Y-%m-%d %H:%M %Z" . utcToLocalTime z . getMyTime
+
+renderContents :: TimeZone -> GenericItem -> String
+renderContents z (GenericItem {..}) =
+    unpack $ T.unlines $ catMaybes
+      [ ("Title: " <>) <$> giTitle
+      , ("Link: " <>) <$> giURL
+      , ("Author: " <>) <$> giAuthor
+      , ("Date: " <>) <$> timeToText z <$> giDate
+      , Just ""
+      , f <$> giBody
+      ]
+  where
+    settings = def { writerWrapText = WrapNone }
+    f x = case runPure $ writePlain settings =<< readHtml def x of
+      Left e -> T.pack $ show e
+      Right b -> b
+
+openCurrentInPager :: Action
+openCurrentInPager st =
+  suspendAndResume $ (menuState . selectedItem . _1 . preservingResult) (\i -> void $ rawSystem "sh" ["-c", "echo \"$1\" | less", "--", renderContents (unsafePerformIO getCurrentTimeZone) i]) st
 
 openCurrentUrl :: Action
 openCurrentUrl st = suspendAndResume $ set (menuState . selectedItem . _2) True <$> (menuState . selectedItem . _1 . giURLL . _Just . preservingResult) f st
