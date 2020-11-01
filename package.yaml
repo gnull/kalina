@@ -31,13 +31,19 @@ dependencies:
   - containers >= 0.6 && < 1
   - binary >= 0.8 && < 1
   - time
+  - mtl >= 2.2 && <3
+  - either >= 5.0 && <6
 
 ghc-options:
 - -Wall -threaded
 
 library:
-  source-dirs: src
+  source-dirs: src _src
   exposed-modules:
+  - State_
+  - MZipper_
+  - Actions_
+  - Utility_
   - GenericFeed
   - GenericFeed.Binary
   - State
