@@ -47,7 +47,7 @@ withLockedState :: ReaderT Config (ReaderT s (EventM ())) a
                 -> ReaderT Config (StateT  s (EventM ())) a
 withLockedState = mapReaderT liftReaderT
 
-returningState :: MenuMonad () -> MenuMonad (Next State)
+returningState :: MenuMonad () -> MenuAction
 returningState m = do
   m
   s <- get
