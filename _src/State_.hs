@@ -30,6 +30,8 @@ data CommonState = CommonState
                    , _fetchState :: FetchState     -- The feeds fetching queue
                    }
 
+$(makeLenses ''CommonState)
+
 -- The part of the state which is present only in the feeds menu
 type FeedsState = (MZipper (FilePath, Maybe CacheEntry))
 

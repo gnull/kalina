@@ -60,6 +60,11 @@ enterFeed = do
 
 -- The available items menu actions
 
+leaveFeed :: ItemsAction
+leaveFeed = do
+  (cs, is) <- get
+  lift $ lift $ continue $ State cs $ Left $ quitFeed is
+
 -- The actions that can be performed anywhere in the menu
 
 fetchOneFeed :: MenuAction
@@ -79,3 +84,8 @@ fetchAllFeeds = constMenuAction $ do
     Right is -> do
       traverse_ (liftIO . queue . fst) $ reverse $ is ^. liBefore
       void $ (liUrl . preservingResult) (liftIO . queue) is
+
+toggleHelp :: MenuAction
+toggleHelp = do
+  (State cs x) <- get
+  lift $ lift $ continue $ State (over displayHelp not cs) x
