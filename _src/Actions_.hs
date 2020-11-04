@@ -36,18 +36,22 @@ onlyFeedsAction m = do
   (cs, fs) <- get
   lift $ lift $ continue $ State cs $ Left fs
 
--- to ensure read-only access to the State
---
--- inside such a read-only monad, one
--- can use `ask' to read Config, and `lift ask' to read State
-constMenuAction :: ReaderT Config (ReaderT State (EventM ())) () -> MenuAction
-constMenuAction = mapReaderT f
-  where
-    f :: ReaderT State (EventM ()) () -> StateT State (EventM ()) (Next State)
-    f r = do
-      liftReaderT r
-      s <- get
-      lift $ continue s
+-- Same for items menu
+onlyItemsAction :: ItemsMonad () -> ItemsAction
+onlyItemsAction m = do
+  m
+  (cs, is) <- get
+  lift $ lift $ continue $ State cs $ Right is
+
+withLockedState :: ReaderT Config (ReaderT s (EventM ())) a
+                -> ReaderT Config (StateT  s (EventM ())) a
+withLockedState = mapReaderT liftReaderT
+
+returningState :: MenuMonad () -> MenuMonad (Next State)
+returningState m = do
+  m
+  s <- get
+  lift $ lift $ continue s
 
 -- The available feeds menu actions
 
@@ -68,7 +72,7 @@ leaveFeed = do
 -- The actions that can be performed anywhere in the menu
 
 fetchOneFeed :: MenuAction
-fetchOneFeed = constMenuAction $ do
+fetchOneFeed = returningState $ withLockedState $ do
   queue <- asks queueFetching
   (State _ ms) <- lift ask
   case ms of
@@ -76,7 +80,7 @@ fetchOneFeed = constMenuAction $ do
     Right is -> void $ (liUrl . preservingResult) (liftIO . queue) is
 
 fetchAllFeeds :: MenuAction
-fetchAllFeeds = constMenuAction $ do
+fetchAllFeeds = returningState $ withLockedState $ do
   queue <- asks queueFetching
   (State _ ms) <- lift ask
   case ms of
