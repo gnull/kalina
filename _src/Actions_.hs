@@ -1,21 +1,32 @@
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module Actions_ where
-    
+
 -- This module constains the functions to manipulate the application state
 
 import Control.Monad.State hiding (State)
 import Control.Monad.Reader
 
 import Data.Either.Combinators (maybeToRight)
+import Data.Maybe (catMaybes)
 
 import Data.Foldable (traverse_)
 
 import Control.Lens
+import Data.Text as T hiding (reverse)
+import Text.Pandoc (runPure, writePlain, readHtml, def, WriterOptions(writerWrapText), WrapOption(..))
+import System.Process (rawSystem)
+import System.Exit (ExitCode(ExitSuccess))
 
+import Data.Time.LocalTime (TimeZone, getCurrentTimeZone)
+
+import GenericFeed
 import State_
 import MZipper_
 import Utility_
 import Config_
-import Brick (EventM(..), Next, continue)
+import Brick (EventM(..), Next, continue, suspendAndResume)
 
 -- The Monads describing actions that can be performed in different menus
 type FeedsMonad = ReaderT Config (StateT (CommonState, FeedsState) (EventM ()))
@@ -68,6 +79,35 @@ leaveFeed :: ItemsAction
 leaveFeed = do
   (cs, is) <- get
   lift $ lift $ continue $ State cs $ Left $ quitFeed is
+
+renderContents :: TimeZone -> GenericItem -> String
+renderContents z (GenericItem {..}) =
+    unpack $ T.unlines $ catMaybes
+      [ ("Title: " <>) <$> giTitle
+      , ("Link: " <>) <$> giURL
+      , ("Author: " <>) <$> giAuthor
+      , ("Date: " <>) <$> timeToText z <$> giDate
+      , Just ""
+      , f <$> giBody
+      ]
+  where
+    settings = def { writerWrapText = WrapNone }
+    f x = case runPure $ writePlain settings =<< readHtml def x of
+      Left e -> T.pack $ show e
+      Right b -> b
+
+displayItem :: ItemsAction
+displayItem = withLockedState $ lift $ do
+  (cs, is) <- ask
+  lift $ suspendAndResume $ do
+    tz <- getCurrentTimeZone
+    case is ^? (liItems . mFocus . _1) of
+      Just i -> do
+        ExitSuccess <- rawSystem "sh"
+          ["-c", "echo \"$1\" | less", "--", renderContents tz $ i]
+        pure ()
+      Nothing -> pure ()
+    pure $ State cs $ Right is
 
 -- The actions that can be performed anywhere in the menu
 
