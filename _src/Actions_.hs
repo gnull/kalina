@@ -49,7 +49,7 @@ constMenuAction = mapReaderT f
       s <- get
       lift $ continue s
 
--- The available feeds actions
+-- The available feeds menu actions
 
 enterFeed :: FeedsAction
 enterFeed = do
@@ -58,15 +58,21 @@ enterFeed = do
   let s = State cs $ maybeToRight fs isMaybe
   lift $ lift $ continue s
 
-fetchOneFeed :: (FilePath -> IO ()) -> MenuAction
-fetchOneFeed queue = constMenuAction $ do
+-- The available items menu actions
+
+-- The actions that can be performed anywhere in the menu
+
+fetchOneFeed :: MenuAction
+fetchOneFeed = constMenuAction $ do
+  queue <- asks queueFetching
   (State _ ms) <- lift ask
   case ms of
     Left fs -> void $ (mFocus . _1 . preservingResult) (liftIO . queue) fs
     Right is -> void $ (liUrl . preservingResult) (liftIO . queue) is
 
-fetchAllFeeds :: (FilePath -> IO ()) -> MenuAction
-fetchAllFeeds queue = constMenuAction $ do
+fetchAllFeeds :: MenuAction
+fetchAllFeeds = constMenuAction $ do
+  queue <- asks queueFetching
   (State _ ms) <- lift ask
   case ms of
     Left fs -> traverse_ (liftIO . queue . fst) $ fs
