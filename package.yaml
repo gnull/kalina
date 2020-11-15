@@ -44,6 +44,7 @@ library:
   - State_
   - MZipper_
   - Actions_
+  - Actions_.ListWidget
   - Utility_
   - GenericFeed
   - GenericFeed.Binary

@@ -37,6 +37,9 @@ zipRight = zipReverse . zipLeft . zipReverse
 zipIndex :: Zipper a -> Int
 zipIndex (Zipper l _ _) = length l
 
+zipIndexMaybe :: MZipper a -> Maybe Int
+zipIndexMaybe = fmap zipIndex . view compose
+
 zipSetIndex :: Int -> Zipper a -> Zipper a
 zipSetIndex idx z = case compare idx le of
     LT -> iterate zipLeft z !! (le - idx)
@@ -53,6 +56,19 @@ instance Functor Zipper where
 
 instance Traversable Zipper where
   traverse f (Zipper bef x aft) = Zipper <$> traverse f (reverse bef) <*> f x <*> traverse f aft
+
+zipFilter :: (a -> Bool -> Bool) -- which elements should we keep?
+          -> MZipper a -> MZipper a
+zipFilter _ (Compose Nothing) = mZEmpty
+zipFilter p (Compose (Just (Zipper bef x aft))) =
+    case (bef', p x True, aft') of
+      (_, True, _) -> mZipper $ Zipper bef' x aft'
+      ([], _, []) -> mZEmpty
+      (y:rest, _, _) -> mZipper $ Zipper rest y aft'
+      (_, _, y:rest) -> mZipper $ Zipper bef' y rest
+  where
+    bef' = filter (flip p False) bef
+    aft' = filter (flip p False) aft
 
 fromList :: [a] -> MZipper a
 fromList [] = mZEmpty

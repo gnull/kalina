@@ -17,8 +17,7 @@ import MZipper_
 data FilterPrefs = FilterPrefs
   { _showUnreadFeeds :: Bool
   , _showUnreadItems :: Bool
-  , _forceShowCurrentFeed :: Bool
-  , _forceShowCurrentItem :: Bool
+  , _forceShowCurrent :: Bool  -- Should the filtering preferences be ignored for the currently selected menu entry?
   }
 
 $(makeLenses ''FilterPrefs)
