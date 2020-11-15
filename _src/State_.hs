@@ -17,8 +17,8 @@ import MZipper_
 data FilterPrefs = FilterPrefs
   { _showUnreadFeeds :: Bool
   , _showUnreadItems :: Bool
-  , _forceShowFeed :: Maybe FilePath
-  , _forceShowItem :: Maybe GenericItem
+  , _forceShowCurrentFeed :: Bool
+  , _forceShowCurrentItem :: Bool
   }
 
 $(makeLenses ''FilterPrefs)
