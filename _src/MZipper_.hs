@@ -24,21 +24,26 @@ mZEmpty = Compose Nothing
 mZipper :: Zipper a -> MZipper a
 mZipper = Compose . Just
 
+zipReverse :: Zipper a -> Zipper a
+zipReverse (Zipper l x r) = Zipper r x l
+
 zipLeft :: Zipper a -> Zipper a
 zipLeft (Zipper [] x r) = Zipper [] x r
 zipLeft (Zipper (x':l) x r) = Zipper l x' (x:r)
 
 zipRight :: Zipper a -> Zipper a
-zipRight (Zipper l x []) = Zipper l x []
-zipRight (Zipper l x (x':r)) = Zipper (x:l) x' r
+zipRight = zipReverse . zipLeft . zipReverse
+
+zipIndex :: Zipper a -> Int
+zipIndex (Zipper l _ _) = length l
 
 zipSetIndex :: Int -> Zipper a -> Zipper a
-zipSetIndex idx z@(Zipper l _ _) = case compare idx le of
+zipSetIndex idx z = case compare idx le of
     LT -> iterate zipLeft z !! (le - idx)
     EQ -> z
     GT -> iterate zipRight z !! (idx - le)
   where
-    le = length l
+    le = zipIndex z
 
 instance Foldable Zipper where
   foldr f a (Zipper l x r) = foldr f a $ Prelude.reverse l ++ x : r
