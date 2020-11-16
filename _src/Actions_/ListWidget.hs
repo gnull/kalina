@@ -30,41 +30,45 @@ zipLeftUntil p z | p $ z ^. focus = z'
 zipRightUntil :: (a -> Bool) -> Zipper a -> Zipper a
 zipRightUntil p = zipReverse . zipLeftUntil p . zipReverse
 
--- TODO: Rewrite the next two functions to work with EventM actions
-
 applyFitered :: (a -> Bool -> Bool)              -- filter expression
-             -> (MZipper a -> MZipper a) -- modifying function, it's allowed only to move the cursor
-             -> MZipper a -> MZipper a
-applyFitered p f z = case compare delta 0 of
-    LT -> iterate (over compose $ fmap $ zipLeftUntil $ flip p False) z !! (-delta)
+             -> (MZipper a -> EventM () (MZipper a)) -- modifying function, it's allowed only to move the cursor
+             -> MZipper a -> EventM () (MZipper a)
+applyFitered p f z = do
+  d <- delta
+  pure $ case compare d 0 of
+    LT -> iterate (over compose $ fmap $ zipLeftUntil $ flip p False) z !! (-d)
     EQ -> z
-    GT -> iterate (over compose $ fmap $ zipRightUntil $ flip p False) z !! delta
+    GT -> iterate (over compose $ fmap $ zipRightUntil $ flip p False) z !! d
   where
     z' = zipFilter p z
-    delta = case (zipIndexMaybe $ f z', zipIndexMaybe z') of
-      (Just a, Just b) -> a - b
-      (Nothing, Nothing) -> 0
-      (_, _) -> error "Your function messed with Zipper contents!"
+    delta = do
+      fz' <- f z'
+      pure $ case (zipIndexMaybe $ fz', zipIndexMaybe z') of
+        (Just a, Just b) -> a - b
+        (Nothing, Nothing) -> 0
+        (_, _) -> error "Your function messed with Zipper contents!"
 
 handleEvent :: ((String, Maybe CacheEntry) -> Bool -> Bool) -- which feeds should be visible?
             -> ((GenericItem, ItemStatus) -> Bool -> Bool)  -- which items should be visible?
-            -> (forall e. GenericList () [] e -> GenericList () [] e) -- list event handler to apply
+            -> (forall e. GenericList () [] e -> EventM () (GenericList () [] e)) -- list event handler to apply
             -> MenuAction
 handleEvent pFeed pItem act = do
     (State cs s) <- get
     let (FilterPrefs {..}) = view filterPrefs cs
     case s of
       Left fs -> do
-        let fs' = applyFitered pFeed (glistOverZipper act) fs
+        fs' <- lift $ lift $ applyFitered pFeed (glistOverZipper act) fs
         lift $ lift $ continue $ State cs $ Left fs'
       Right is -> do
-        let is' = over liItems (applyFitered pItem $ glistOverZipper act) is
+        is' <- lift $ lift $ liItems (applyFitered pItem $ glistOverZipper act) is
         lift $ lift $ continue $ State cs $ Right is'
   where
-    glistOverZipper :: (GenericList () [] e -> GenericList () [] e) -> MZipper e -> MZipper e
-    glistOverZipper _  (Compose Nothing) = Compose Nothing
-    glistOverZipper ac (Compose (Just z)) = Compose $ Just $ let
-        i = Just $ zipIndex z
-        l = list () (toList z) 1 & listSelectedL .~ i
-        Just i' = ac l ^. listSelectedL
-      in zipSetIndex i' z
+    glistOverZipper :: (GenericList () [] e -> EventM () (GenericList () [] e)) -> MZipper e -> EventM () (MZipper e)
+    glistOverZipper _  (Compose Nothing) = pure $ Compose Nothing
+    glistOverZipper ac (Compose (Just z)) = do
+        let i = Just $ zipIndex z
+            l = list () (toList z) 1 & listSelectedL .~ i
+        i' <- ac l <&> (^. listSelectedL)
+        case i' of
+          Just i'' -> pure $ Compose $ Just $ zipSetIndex i'' z
+          Nothing -> error "Action ate the list index! (this should be impossible)"
