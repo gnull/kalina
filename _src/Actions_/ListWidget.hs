@@ -4,13 +4,15 @@
 module Actions_.ListWidget where
 
 import Prelude hiding (filter, length)
+import Data.Functor.Compose (Compose(..))
+import Data.Foldable (Foldable(..))
 
 import Control.Lens
 -- import Control.Monad.Reader
 import Control.Monad.State (get, lift)
 
 import Brick (EventM, continue)
-import Brick.Widgets.List (GenericList)
+import Brick.Widgets.List (GenericList, list, listSelectedL)
 
 import MZipper_
 import Actions_
@@ -46,25 +48,23 @@ applyFitered p f z = case compare delta 0 of
 
 handleEvent :: ((String, Maybe CacheEntry) -> Bool -> Bool) -- which feeds should be visible?
             -> ((GenericItem, ItemStatus) -> Bool -> Bool)  -- which items should be visible?
-            -> (forall n e. GenericList n [] e -> GenericList n [] e) -- list event handler to apply
+            -> (forall e. GenericList () [] e -> GenericList () [] e) -- list event handler to apply
             -> MenuAction
 handleEvent pFeed pItem act = do
     (State cs s) <- get
     let (FilterPrefs {..}) = view filterPrefs cs
     case s of
       Left fs -> do
-        let f (_, ce) curr = if (_forceShowCurrent && curr) || not _showUnreadFeeds
-            then True
-            else case ce of
-              Nothing -> False
-              Just (_, is) -> any (not . snd) is
-        let fs' = applyFitered f (glistOverZipper act) fs
+        let fs' = applyFitered pFeed (glistOverZipper act) fs
         lift $ lift $ continue $ State cs $ Left fs'
       Right is -> do
-        let f (_, rs) curr = if (_forceShowCurrent && curr) || not _showUnreadFeeds
-            then True
-            else not rs
-        let is' = over liItems (applyFitered f $ glistOverZipper act) is
+        let is' = over liItems (applyFitered pItem $ glistOverZipper act) is
         lift $ lift $ continue $ State cs $ Right is'
   where
-    glistOverZipper = _
+    glistOverZipper :: (GenericList () [] e -> GenericList () [] e) -> MZipper e -> MZipper e
+    glistOverZipper _  (Compose Nothing) = Compose Nothing
+    glistOverZipper ac (Compose (Just z)) = Compose $ Just $ let
+        i = Just $ zipIndex z
+        l = list () (toList z) 1 & listSelectedL .~ i
+        Just i' = ac l ^. listSelectedL
+      in zipSetIndex i' z
