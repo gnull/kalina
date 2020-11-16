@@ -55,13 +55,13 @@ handleEvent :: ((String, Maybe CacheEntry) -> Bool -> Bool) -- which feeds shoul
 handleEvent pFeed pItem act = do
     (State cs s) <- get
     let (FilterPrefs {..}) = view filterPrefs cs
-    case s of
+    lift $ lift $ case s of
       Left fs -> do
-        fs' <- lift $ lift $ applyFitered pFeed (glistOverZipper act) fs
-        lift $ lift $ continue $ State cs $ Left fs'
+        fs' <- applyFitered pFeed (glistOverZipper act) fs
+        continue $ State cs $ Left fs'
       Right is -> do
-        is' <- lift $ lift $ liItems (applyFitered pItem $ glistOverZipper act) is
-        lift $ lift $ continue $ State cs $ Right is'
+        is' <- liItems (applyFitered pItem $ glistOverZipper act) is
+        continue $ State cs $ Right is'
   where
     glistOverZipper :: (GenericList () [] e -> EventM () (GenericList () [] e)) -> MZipper e -> EventM () (MZipper e)
     glistOverZipper _  (Compose Nothing) = pure $ Compose Nothing
