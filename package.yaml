@@ -38,7 +38,9 @@ ghc-options:
 - -Wall -threaded
 
 library:
-  source-dirs: src _src
+  source-dirs:
+  - src
+  - _src
   exposed-modules:
   - Config_
   - State_
